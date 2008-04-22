@@ -37,13 +37,14 @@ package.loaded['loft.providers.mock'] = {
 		print('persistSimple', id)
 
 		media['__simple__'] = media['__simple__'] or {} 
-		media[class][id] = obj
+		media['__simple__'][id] = obj
 	end;
 	
 	retrieveSimple=function(id) 
 		print('retrieveSimple', id)
 		media['__simple__'] = media['__simple__'] or {} 
-		media[class][id] = obj
+		local item = media['__simple__']
+		item[id] = obj
 	end;
 
 	search=function(...) 
