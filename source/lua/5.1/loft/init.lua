@@ -141,6 +141,11 @@ function new(typeName, data, id)
 				-- TODO: register fieldTypes in object
 				obj.__attributes[key] = value			
 			end
+			
+			-- execute creation hook if present
+			if class.__create then
+				obj = class.__new(obj) 
+			end
 		end
 		
 		if data then
@@ -159,6 +164,7 @@ function new(typeName, data, id)
 	else
 		-- it's a simple type. was stored directly
 		obj = data or {}
+		obj.id = id
 	end
 	
 	-- TODO: check if we really want to give IDs to simple types 	
@@ -166,7 +172,8 @@ function new(typeName, data, id)
 	rawset(obj, '__dirty', true)
 	allRefreshTimestamps[id] = os.time() -- this object was refreshed now
 		
-	-- TODO: return a proxy to ouside world, and keep the real object inside the pool, so we can refresh it when timeout is over an be able to replace eventual live references  	
+	-- TODO: return a proxy to ouside world, and keep the real object inside the pool, so we can refresh it when timeout is over an be able to replace eventual live references
+	
 	return obj
 end
 
