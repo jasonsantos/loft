@@ -12,6 +12,8 @@ module(..., package.seeall)
 -----------------------------------------------
 -- supportSchemas();
 
+-- options(optionsTable);
+
 -- getNextId([typeName]);
 
 -- persist(class, id, data)
@@ -30,6 +32,7 @@ module(..., package.seeall)
 -----------------------------------------------
 -- OPTIONS
 -----------------------------------------------
+---  this provider default options
 
 -- Variables available for path and filename
 -- ${fileType} 	-- type of the file being saved
@@ -38,14 +41,33 @@ module(..., package.seeall)
 -- ${series}	-- Id based series. 
 --				   a series is the number of the ID / MAX_IDS_PER_FILE  
 local defaultOptions = {
-	PERSISTENCE_PATH = './net.luaforge.loft/testsuite/db/${fileType}/${typeName}/';
+	PERSISTENCE_PATH = './db/${fileType}/${typeName}/';
 	PERSISTENCE_FILENAME = '${series}.serialized';
 	UPDATE_THRESHOLD = 6; -- seconds
 	MAX_IDS_PER_FILE = 1000; -- seconds
 	ISOLATE_IDS_PER_TYPE = true;
 }
 
-options = defaultOptions
+-- options([optionTable])
+--- every provider must have a public 'options' 
+-- table. It must implement a metatable to allow
+-- this table to be called as a function
+
+-- @param optionTable 	when called with a table parameter, 
+--				 		it sets all parameters present in the
+--						table with new values  
+options = setmetatable({}, {
+	__index = defaultOptions;
+	__call = function(f, optionTable)
+		if optionTable then
+			assert(type(optionTable)=='table', 'options argument must be a table')
+			table.foreach(optionTable, function(key, value)
+				options[key] = value
+			end)
+		end
+		return options 
+	end;
+})
 
 -----------------------------------------------
 -- IMPLEMENTATION

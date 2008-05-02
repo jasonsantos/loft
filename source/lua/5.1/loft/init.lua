@@ -22,11 +22,16 @@ local provider = false -- none
 -- when needed by the function getProvider()
 -- @param providerName 	the name of the persistence provider to be used
 --						the provider correspond to a module named 'loft.providers.&lt;providerName&gt;'
-function initialize(providerName)
+-- @param optionsTable 	(optional) table with a set of options for the loft engine and the provider
+function initialize(providerName, optionsTable)
 	local providerName = providerName or "serialization"
 	provider = require("loft.providers." .. providerName) 
 	if not provider then
 		error("Unable to initialize persistence provider " .. tostring(providerName))
+	end
+	
+	if optionsTable then
+		provider.options(optionsTable)
 	end
 	
 	return getfenv(1)
@@ -37,6 +42,19 @@ end
 local function getProvider()
 	if provider then
 		return provider;
+	else
+		error"Persistence provider is not set"
+	end
+end
+
+--- returns the provider's options table or sets values within it
+-- @param optionTable 	when called with a table parameter, 
+--				 		it sets all parameters present in the
+--						table with new values  
+-- @returns provider option table 
+local function options(optionTable)
+	if provider then
+		return provider.options(optionTable);
 	else
 		error"Persistence provider is not set"
 	end
