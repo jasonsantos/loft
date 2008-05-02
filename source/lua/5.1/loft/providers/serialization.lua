@@ -230,12 +230,17 @@ end
 ------------------------------------------------------
 
 
+-- initialize([ [sourceName], ...])
+--- initializes the provider
+function initialize(sourceName, ...)
+	-- TODO:...
+end
 
 -- supportSchemas();
 --- respond whether this provider supports schemas
 -- @return true if schemas are supported
 function supportSchemas()
-	return true
+	return package.loaded['schemas']
 end
 
 
