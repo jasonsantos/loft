@@ -255,6 +255,8 @@ local function getObjectFromPool(id)
 		return  obj 	
 	else
 		-- TODO: invalidate the object being referenced by the application
+		-- in order to do that, all references to objects must be empty proxies 
+		-- the actual objects must be kept in the pool at all times
 	end
 end
 
