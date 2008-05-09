@@ -52,8 +52,6 @@ local defaultOptions = {
 
 local connection
 
-local options
-
 pcall(require,"luarocks.require")
 
 function isDir(path)
@@ -105,6 +103,7 @@ function sql.exists(tableName, id)
 	local cursor = sql.exec('select id from %s where id = %d', tableName, id) 
 	local row = {} 
 	row = cursor:fetch(row)
+	cursor:close()
 	return row and row[1] or row
 end
 
@@ -299,6 +298,16 @@ local function getPhysicalTableName(class)
 end
 
 
+local function getPhysicalTableStructure(class)
+	-- TODO: add sophistication
+	if type(class)=='table' and rawget(class, '__tableName') then
+		return rawget(class, '__tableName')
+	else
+		return getTypeName(class)
+	end
+end
+
+
 ------------------------------------------------------
 -- API
 ------------------------------------------------------
@@ -339,7 +348,7 @@ local seriesSize = 20
 
 return function(class)
 	-- if options are set to isolate IDs per type use typename
-	local typeName = options.ISOLATE_IDS_PER_TYPE and class and getTableName(class)
+	local typeName = options.ISOLATE_IDS_PER_TYPE and class and getPhysicalTableName(class)
 	typeName = typeName or 'Config'
 	
 	local idsLeft = aIdsLeft[typeName]
@@ -361,7 +370,6 @@ return function(class)
 	})
 	
 	connection:setautocommit(false)
-	sql.exec'begin'
 	
 	-- save latest id + size of the series into persistence
 	local s = string.format([[update %s set lastId = lastId + %d + 1]], tableName, seriesSize)
@@ -373,6 +381,7 @@ return function(class)
 	
 	assert(cursor)
 	local lastIdOfSeries = cursor:fetch()
+	cursor:close()
 	
 	-- if that table has never got any IDs
 	if not lastIdOfSeries then
@@ -417,8 +426,9 @@ options = setmetatable({}, {
 -- persist(class, id, data)
 
 function persist(class, id, data)
-	local typeName = getTypeName(class)
-	local tableName = getTableName(class)
+	local tableName = getPhysicalTableName(class)
+	
+	assertTableExists(tableName, class)
 	
 	if sql.exists(tableName, id) then
 		sql.update(tableName, id, data)
@@ -428,9 +438,31 @@ function persist(class, id, data)
 	
 end
 
+
 -- retrieve(class, id)
+--- Obtains a table from the persistence that 
+-- has the proper structure of an object of a given type
+-- @param class the schema class identifying the type of the object to retrieve
+-- @param id identifier of the object to load
+function retrieve(class, id)
+	local tableName = getPhysicalTableName(class)
+	
+	return sql.select(tableName, id)
+
+end 
 
 -- erase(class, id)
+--- Eliminates a record  from the persistence that 
+-- corresponds to the given id 
+-- @param class the schema class identifying the type of the object to retrieve
+-- @param id identifier of the object to remove
+function erase(class, id)
+	local tableName = getPhysicalTableName(class)
+	
+	return sql.delete(tableName, id)
+
+end 
+
 
 -- persistSimple(id, data)
 -- retrieveSimple(id)
@@ -438,3 +470,19 @@ end
 -- eraseSimple(id)
 
 -- search(class, filter, visitorFunction)
+--- Perform a visitor function on every record obtained  
+-- in the persistence through a given set of filters
+-- @param class the schema class identifying the type of the object to retrieve
+-- @param filter 	table containing a set of filter conditions
+--					
+-- @param visitor	(optional) function to be executed 
+-- 					every time an item is found in persistence
+function search(class, id, visitorFunction)
+	local tableName = getPhysicalTableName(class)
+	
+	rows =  sql.select(tableName, filter) or {}
+	
+	for _,data in pairs(rows) do
+		visitorFunction(data)
+	end
+end

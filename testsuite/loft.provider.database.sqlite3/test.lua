@@ -1,12 +1,24 @@
 package.path = [[;;./net.luaforge.loft/source/lua/5.1/?.lua;./net.luaforge.loft/source/lua/5.1/?/init.lua;]]
+
 local now = os.clock()
-print(now)
-local provider = require"loft.providers.serialization"
+local log = function()
+	print('log: ' .. os.clock() - now)
+end
+
+print(os.clock() - now)
+
+local provider = require"loft.providers.database.sqlite3"
+
+local lfs = require'lfs'
+
 provider.options{
-	PERSISTENCE_PATH = './net.luaforge.loft/testsuite/db/${fileType}/${typeName}/';
+	PERSISTENCE_FILENAME = 'test.db3';
 }
 
+
 local NUM_OF_OBJECTS_TO_GENERATE = 100
+
+provider.initialize()
 
 -- generates an ID
 local id = provider.getNextId('test')
