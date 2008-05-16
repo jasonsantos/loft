@@ -9,7 +9,7 @@ local allTypes = Schema 'Cli' {
 	 	. nome "Nome"
 	 	. descricao;
 
-	 Type 'Cliente'
+	 Type 'Cliente' {tableName='tbCliente', databaseName='teste'}
 		. nome
 		. endereco
 		. telefone

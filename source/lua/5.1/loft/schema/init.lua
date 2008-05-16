@@ -42,11 +42,13 @@ local Field = function(fieldName, type)
 	})
 end
 
+--- Função de controle para os tipos.. deve retornar um tipo 
 global['Type'] = function(typeName)
 	print('------------ type ' .. typeName .. ' --------------')
 	local type = {
 		['.type'] = type;
 		['.typeName'] = typeName;
+		['.tableName'] = typeName;
 	}
 	
 	local lastCall = ''

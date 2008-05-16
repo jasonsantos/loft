@@ -61,10 +61,9 @@ function isDir(path)
 end
 
 function dirName (path)
-  return string.match(path, "^(.*)/[^/]*$")
+	return string.match(path, "^(.*)/[^/]*$")
 end
-  
-  
+
 function mkdir(path)
 	local parent = dirName (path)
 	local result = true, msg 
@@ -96,7 +95,7 @@ end
 local sql = {}
 
 --- directly executes an SQL statement using simple parameters
---  @params	sql	sql instruction to execute. Must have proper placeholders for string.format
+--	@params	sql	sql instruction to execute. Must have proper placeholders for string.format
 --	@params ...	paremeters to be used in string.format
 --	@return query result
 function sql.exec(sql, ...)
@@ -119,7 +118,7 @@ function sql.select(tableName, id, filters)
 	local filters = filters or {}
 	table.foreach(filters, function(field, value)
 		if string.sub(field, 1, 1) ~= '_' then
-
+			
 			renderedAttribs = string.format("%s%s%s='%s'", 
 				renderedAttribs or '', 
 				renderedAttribs and ' AND ' or '',
@@ -169,7 +168,7 @@ function sql.insert(tableName, data)
 				renderedFields or '', 
 				renderedFields and ', ' or '',
 				field)
-	
+			
 			renderedValues = string.format("%s%s'%s'", 
 				renderedValues or '', 
 				renderedValues and ', ' or '',
@@ -272,7 +271,8 @@ end
 -- </SQL API> ---------------------------------------------------
 -----------------------------------------------------------------
 
-local function assertTableExists(tableName, structure)
+
+local function assertTableExists(tableName, class, data)
 
 	local res, msg = sql.existTable(tableName)
 	
@@ -280,6 +280,8 @@ local function assertTableExists(tableName, structure)
 		if not options().AUTO_CREATE_TABLES then
 			error(msg)
 		end
+		
+		local structure = getPhysicalTableStructure(class, data)
 		
 		sql.createTable(tableName, structure)
 		
@@ -292,27 +294,43 @@ local function getTypeName(class)
 
 	if type(class)=='string' then
 		return class
-	elseif type(class)=='table' and rawget(class, '__typeName') then
-		return rawget(class, '__typeName')
+	elseif type(class)=='table' and rawget(class, '.typeName') then
+		return rawget(class, '.typeName')
 	else
 		return 1
 	end
 end
 
-local function getPhysicalTableName(class)
+local function getPhysicalTableName(class, data)
 	-- TODO: add sophistication
-	if type(class)=='table' and rawget(class, '__tableName') then
-		return rawget(class, '__tableName')
+	local structure = { id = 'INT' }
+	if type(class)=='table' and rawget(class, '.tableName') then
+		if class.fields then --TODO: no schemas
+			local names = class.fields.names() --TODO: no schemas
+			local types = class.fields.types() --TODO: no schemas
+			for ix, name in pairs(names) do
+				structure[name] = types[ix]
+			end 
+		end
 	else
-		return getTypeName(class)
+		for key, value in pairs(data) do
+			if type(value) == 'number' then
+				structure[key] = 'REAL'
+			elseif type(value) == 'string' then
+				structure[key] = 'TEXT'
+			elseif type(value) == 'table' and value.id then
+				structure[key] = 'INT'
+			end
+		end
 	end
+	return structure
 end
 
 
 local function getPhysicalTableStructure(class)
 	-- TODO: add sophistication
-	if type(class)=='table' and rawget(class, '__tableName') then
-		return rawget(class, '__tableName')
+	if type(class)=='table' and rawget(class, '.tableName') then
+		return rawget(class, '.tableName')
 	else
 		return getTypeName(class)
 	end
