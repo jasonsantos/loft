@@ -12,6 +12,7 @@ module(..., package.seeall)
 -----------------------------------------------
 
 -- initialize(appName)
+-- finalize()
 
 -- supportSchemas();
 
@@ -78,8 +79,13 @@ local function createConnection(sourceName, ...)
 	local fileName = (options.PERSISTENCE_PATH or '') .. (sourceName or sourceName or options.PERSISTENCE_FILENAME)
 	mkdir(dirName(fileName))
 	local env = luasql.sqlite3()
-	print(fileName)
+--	print(fileName)
 	connection = assert(env:connect(fileName,...))
+end
+
+
+local function closeConnection()
+	return connection:close()
 end
 
 
@@ -234,21 +240,26 @@ function sql.delete(tableName, id, data)
 	return ok, msg or (ok and tostring(ok) .. ' Registro(s) deletados(s) com sucesso')
 end
 
-
+--- Creates a table using SQL
 function sql.createTable(tableName, structure)
 	local sqlTable=setmetatable({},{__index=table}) 
 	
 	sqlTable:insert[[create table if not exists]]
 	sqlTable:insert(tableName)
 	sqlTable:insert[[(]]
+
 	local i
+	structure.id = structure.id or 'INT'
+	
 	table.foreach(structure, function(field, type)
-	sqlTable:insert(field .. '  ' .. (type or '') ..  ',')
-	i = #sqlTable
+		sqlTable:insert(field .. '  ' .. (type or '') ..  ',')
+		i = #sqlTable
 	end)
+
 	if i then
 		sqlTable[i]=string.sub(sqlTable[i], 1, -2)
 	end
+
 	sqlTable:insert[[)]]
 	sql.exec(table.concat(sqlTable, '\n'))
 end
@@ -319,6 +330,12 @@ function initialize(sourceName, ...)
 
 	return createConnection(sourceName, ...)
 	
+end
+
+-- finalize()
+--- finalizes the provider
+function initialize(sourceName, ...)
+	return closeConnection()
 end
 
 
@@ -424,11 +441,10 @@ options = setmetatable({}, {
 })
 
 -- persist(class, id, data)
-
 function persist(class, id, data)
 	local tableName = getPhysicalTableName(class)
 	
-	assertTableExists(tableName, class)
+	assertTableExists(tableName, class, data)
 	
 	if sql.exists(tableName, id) then
 		sql.update(tableName, id, data)
@@ -465,9 +481,32 @@ end
 
 
 -- persistSimple(id, data)
+function persistSimple(id, data)
+	local tableName = '__sandbox'
+	assertTableExists(tableName, {
+		id='INT',
+		serialization='TEXT'
+	})
+	return persist(tableName, id, serialize.encode(data)) -- TODO: serialize.encode in utils
+end 
+
+
 -- retrieveSimple(id)
+function retrieveSimple(id)
+	local tableName = '__sandbox'
+	
+	local data = retrive(tableName, id)
+	return serialize.decode(data.serialization) -- TODO: serialize.decode in utils
+end 
+
 
 -- eraseSimple(id)
+function erase(id)
+	local tableName = '__sandbox'
+	
+	return sql.delete(tableName, id)
+end 
+
 
 -- search(class, filter, visitorFunction)
 --- Perform a visitor function on every record obtained  
@@ -477,7 +516,7 @@ end
 --					
 -- @param visitor	(optional) function to be executed 
 -- 					every time an item is found in persistence
-function search(class, id, visitorFunction)
+function search(class, filter, visitorFunction)
 	local tableName = getPhysicalTableName(class)
 	
 	rows =  sql.select(tableName, filter) or {}
