@@ -84,7 +84,10 @@ end
 
 
 local function closeConnection()
-	return connection:close()
+	if connection then
+		connection:close()
+		connection = nil
+	end
 end
 
 
@@ -116,6 +119,25 @@ function sql.select(tableName, id, filters)
 	local filteredById
 	local renderedAttribs
 	local filters = filters or {}
+	
+	local orderby = filters['__sort']
+	local offset = filters['__offset']
+	local limit = filters['__limit']
+	
+	local orderbyfields = {}
+	local add = function(asc, field)
+		asc = asc=='-' and ' DESC' or asc=='+' and ' ASC' or '' 
+		table.insert(orderbyfields, field .. asc )
+	end
+	
+	if type(orderby) == 'string' then
+		string.gsub(orderby, '([+-]?)(%w+)', add)
+	elseif type(orderby) == 'table' then
+		table.foreachi(orderby, function(_, field)
+			string.gsub(field, '([+-]?)(%w+)', add)
+		end);
+	end
+	
 	table.foreach(filters, function(field, value)
 		if string.sub(field, 1, 1) ~= '_' then
 			
@@ -141,11 +163,14 @@ function sql.select(tableName, id, filters)
 				ids and ', ' or '',
 				tonumber(item))
 		end)
-		filteredById = string.format('ID in (%s)', ids)
+		filteredById = ids and string.format('ID in (%s)', ids) 
 	end
 	
 	local where = (renderedAttribs or filteredById) and 'WHERE '
-	local sql = string.format('select * from %s %s %s', tableName, where or '', filteredById or renderedAttribs or '')
+	local orderby = (#orderbyfields > 0) and ('ORDER BY ' .. table.concat(orderbyfields, ',')) or ''
+	local offset = (offset) and ('OFFSET ' .. offset ) or ''
+	local limit = (limit) and ('LIMIT ' .. limit ) or ''
+	local sql = string.format('select * from %s %s %s %s %s %s', tableName, where or '', filteredById or renderedAttribs or '', orderby, offset, limit)
 
 	local cursor = assert(connection:execute(sql))
 	local row={}
@@ -155,6 +180,7 @@ function sql.select(tableName, id, filters)
 		table.insert(list, row) 
 	end
 	cursor:close()
+
 	return list
 end
 
@@ -271,6 +297,53 @@ end
 -- </SQL API> ---------------------------------------------------
 -----------------------------------------------------------------
 
+local function getTypeName(class)
+
+	if type(class)=='string' then
+		return class
+	elseif type(class)=='table' and rawget(class, '.typeName') then
+		return rawget(class, '.typeName')
+	else
+		return 1
+	end
+end
+
+local function getPhysicalTableStructure(class, data)
+	-- TODO: add sophistication
+	local structure = { id = 'INT' }
+	if type(class)=='table' and rawget(class, '.tableName') then
+		if class.fields then --TODO: no schemas
+			local names = class.fields.names() --TODO: no schemas
+			local types = class.fields.types() --TODO: no schemas
+			for ix, name in pairs(names or {}) do
+				structure[name] = types[ix]
+			end 
+		end
+	else
+		for key, value in pairs(data or {}) do
+			if key == 'id' then
+				structure[key] = 'INT'
+			elseif type(value) == 'number' then
+				structure[key] = 'REAL'
+			elseif type(value) == 'string' then
+				structure[key] = 'TEXT'
+			elseif type(value) == 'table' and value.id then
+				structure[key] = 'INT'
+			end
+		end
+	end
+	return structure
+end
+
+
+local function getPhysicalTableName(class)
+	-- TODO: add sophistication
+	if type(class)=='table' and rawget(class, '.tableName') then
+		return rawget(class, '.tableName')
+	else
+		return getTypeName(class)
+	end
+end
 
 local function assertTableExists(tableName, class, data)
 
@@ -290,52 +363,6 @@ local function assertTableExists(tableName, class, data)
 	end
 end
 
-local function getTypeName(class)
-
-	if type(class)=='string' then
-		return class
-	elseif type(class)=='table' and rawget(class, '.typeName') then
-		return rawget(class, '.typeName')
-	else
-		return 1
-	end
-end
-
-local function getPhysicalTableName(class, data)
-	-- TODO: add sophistication
-	local structure = { id = 'INT' }
-	if type(class)=='table' and rawget(class, '.tableName') then
-		if class.fields then --TODO: no schemas
-			local names = class.fields.names() --TODO: no schemas
-			local types = class.fields.types() --TODO: no schemas
-			for ix, name in pairs(names) do
-				structure[name] = types[ix]
-			end 
-		end
-	else
-		for key, value in pairs(data) do
-			if type(value) == 'number' then
-				structure[key] = 'REAL'
-			elseif type(value) == 'string' then
-				structure[key] = 'TEXT'
-			elseif type(value) == 'table' and value.id then
-				structure[key] = 'INT'
-			end
-		end
-	end
-	return structure
-end
-
-
-local function getPhysicalTableStructure(class)
-	-- TODO: add sophistication
-	if type(class)=='table' and rawget(class, '.tableName') then
-		return rawget(class, '.tableName')
-	else
-		return getTypeName(class)
-	end
-end
-
 
 ------------------------------------------------------
 -- API
@@ -352,7 +379,7 @@ end
 
 -- finalize()
 --- finalizes the provider
-function initialize(sourceName, ...)
+function finalize()
 	return closeConnection()
 end
 
@@ -382,13 +409,14 @@ local seriesSize = 20
 
 
 return function(class)
+local p = function()end
 	-- if options are set to isolate IDs per type use typename
 	local typeName = options.ISOLATE_IDS_PER_TYPE and class and getPhysicalTableName(class)
 	typeName = typeName or 'Config'
 	
 	local idsLeft = aIdsLeft[typeName]
 	local nextId = aNextId[typeName]
-	
+p('idsLeft',idsLeft)
 	-- if there's still IDs in the series at hand
 	if idsLeft and idsLeft > 0 then
 		aNextId[typeName] = nextId + 1
@@ -398,16 +426,16 @@ return function(class)
 
 	-- get a new series'
 	
-	local tableName = '_Id_' .. typeName
+	local tableName = '_id_' .. typeName
 	
-	assertTableExists(tableName, {
-		lastId='INT'
+	assertTableExists(tableName, nil, {
+		lastId=0
 	})
 	
 	connection:setautocommit(false)
 	
 	-- save latest id + size of the series into persistence
-	local s = string.format([[update %s set lastId = lastId + %d + 1]], tableName, seriesSize)
+	local s = string.format([[update %s set lastId = lastId + %d]], tableName, seriesSize)
 	--print(s)
 	sql.exec(s)
 	
@@ -421,16 +449,19 @@ return function(class)
 	-- if that table has never got any IDs
 	if not lastIdOfSeries then
 		lastIdOfSeries = seriesSize
-		sql.insert(tableName, {lastId=seriesSize+1})
+		sql.insert(tableName, {lastId=seriesSize})
 	end
 	
 	connection:commit()
 	connection:setautocommit(true)
 	
-	local lastId = lastIdOfSeries - seriesSize + 1
+	p('lastIdOfSeries',lastIdOfSeries)
+	local lastId = lastIdOfSeries - seriesSize
+	p('lastId',lastId)
 	 
 	aNextId[typeName] = lastId + 1
-	aIdsLeft[typeName] = seriesSize 
+	p('aNextId[typeName]',aNextId[typeName])
+	aIdsLeft[typeName] = seriesSize - 1
 	
 	return lastId
 end
@@ -478,10 +509,16 @@ end
 -- has the proper structure of an object of a given type
 -- @param class the schema class identifying the type of the object to retrieve
 -- @param id identifier of the object to load
+-- @return object of the given type corresponding to Id or nil
 function retrieve(class, id)
 	local tableName = getPhysicalTableName(class)
 	
-	return sql.select(tableName, id)
+	local list = sql.select(tableName, id)
+	if list then
+		return list[1]
+	else
+		return nil, 'not found'
+	end
 
 end 
 
@@ -501,8 +538,8 @@ end
 -- persistSimple(id, data)
 function persistSimple(id, data)
 	local tableName = '__sandbox'
-	assertTableExists(tableName, {
-		id='INT',
+	assertTableExists(tableName, nil, {
+		id=0,
 		serialization='TEXT'
 	})
 	return persist(tableName, id, serialize.encode(data)) -- TODO: serialize.encode in utils
@@ -519,27 +556,37 @@ end
 
 
 -- eraseSimple(id)
-function erase(id)
+function eraseSimple(id)
 	local tableName = '__sandbox'
 	
 	return sql.delete(tableName, id)
 end 
 
+local relayFunction = function(...) return ... end
 
 -- search(class, filter, visitorFunction)
 --- Perform a visitor function on every record obtained  
 -- in the persistence through a given set of filters
 -- @param class the schema class identifying the type of the object to retrieve
 -- @param filter 	table containing a set of filter conditions
---					
+--					those filters can be improved by adding sort fields 
 -- @param visitor	(optional) function to be executed 
 -- 					every time an item is found in persistence
+--					if ommited, function will return a list with everything it found
+-- @return 			array with every return value of 
 function search(class, filter, visitorFunction)
 	local tableName = getPhysicalTableName(class)
+	local list = {}
 	
-	rows =  sql.select(tableName, filter) or {}
-	
-	for _,data in pairs(rows) do
-		visitorFunction(data)
+	rows =  sql.select(tableName, nil, filter or {}) or {}
+	visitorFunction = visitorFunction or relayFunction
+	for _,data in pairs(rows or {}) do
+		--TODO: find a way of passing the list into the visitor, to allow custom sorting
+		local o = visitorFunction(data)
+		if o then
+			table.insert(list, o)
+		end
 	end
+	
+	return list
 end

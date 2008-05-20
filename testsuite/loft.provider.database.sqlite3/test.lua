@@ -5,20 +5,19 @@ local log = function()
 	print('log: ' .. os.clock() - now)
 end
 
-print(os.clock() - now)
-
 local provider = require"loft.providers.database.sqlite3"
 
 local lfs = require'lfs'
 
 provider.options{
 	PERSISTENCE_FILENAME = 'test.db3';
+	PERSISTENCE_PATH= './net.luaforge.loft/testsuite/'
 }
 
 
 local NUM_OF_OBJECTS_TO_GENERATE = 100
 
-provider.initialize()
+provider.initialize('test.db3')
 
 -- generates an ID
 local id = provider.getNextId('test')
@@ -35,9 +34,8 @@ for i=1, NUM_OF_OBJECTS_TO_GENERATE do
 	})
 	-- counts how many times this particular ID has been generated
 	times[id] = (times[id] and (times[id] + 1)) or 1
-	local id = provider.getNextId('test')
-	-- generates the next ID
-	id = provider.getNextId('test') 
+	id = provider.getNextId('test')
+	
 end
  
 local generatedId = firstId
@@ -51,11 +49,59 @@ local lastId = firstId + NUM_OF_OBJECTS_TO_GENERATE
 
 assert(id==lastId, 'wrong number of objects created')
 
-
-
-local t = provider.retrieve('test', lastId)
+local t = provider.retrieve('test', lastId-1)
 assert(t, 'object was not retrieved for id==' .. lastId)
 
-print(t.name)
+assert(t.name == 'test' .. (lastId-firstId), 'The proper object was not retrieved')
 
-print(id, os.clock()-now)
+
+local list = {}
+
+provider.search('test', {name='test99'}, function(item)
+	assert(item.name=='test99')
+	table.insert(list, item)
+end)
+
+assert(#list==1, 'search did not find the item by name')
+
+table.foreachi(list, function(i, item)
+	provider.erase('test', item.id)
+end)
+
+list = provider.search('test', {name='test99'}, function(item)
+	assert(item.name=='test99')
+	table.insert(list, item)
+end)
+
+assert(#list==0, 'erase did not remove the item properly')
+
+
+list = provider.search('test', {name='test98'})
+
+assert(#list==1, 'short search did not find the item by name')
+
+table.foreachi(list, function(i, item)
+	provider.erase('test', item.id)
+end)
+
+list = provider.search('test', {name='test98'})
+
+assert(#list==0, 'erase did not remove the item properly')
+
+list = provider.search('test', {__sort='-name', __limit=10})
+
+assert(#list==10, 'limited search has brought the wrong amount of items')
+
+list = provider.search('test', {__sort='-name'})
+
+assert(#list==98, 'global search found the wrong amount of items')
+
+table.foreachi(list, function(i, item)
+	provider.erase('test', item.id)
+end)
+
+list = provider.search('test', {})
+
+assert(#list==0, 'erase did not remove all items properly')
+
+print 'OK'
