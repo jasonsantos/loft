@@ -376,6 +376,10 @@ function search(class, filter, visitorFunction)
 	local tableName = getPhysicalTableName(class)
 	local list = {}
 	
+	if not sql.existTable(tableName) then
+		return list
+	end
+		
 	rows =  sql.select(tableName, nil, filter or {}) or {}
 	visitorFunction = visitorFunction or relayFunction
 	for _,data in pairs(rows or {}) do
