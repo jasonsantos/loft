@@ -7,6 +7,7 @@ local getfenv = getfenv
 local pairs = pairs
 local rawset = rawset
 local rawget = rawget
+local unpack = unpack
 local require = require
 local setmetatable = setmetatable
 local getmetatable = getmetatable
