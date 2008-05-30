@@ -14,6 +14,7 @@ module(..., package.seeall)
 -----------------------------------------------
 
 -- initialize(appName)
+-- reopen()
 -- finalize()
 
 -- supportSchemas();
@@ -53,7 +54,9 @@ local defaultOptions = {
 -- IMPLEMENTATION
 -----------------------------------------------
 
+local environment
 local connection
+local connectionData
 
 pcall(require,"luarocks.require")
 
@@ -75,14 +78,23 @@ function mkdir(path)
 	return result and lfs.mkdir(path), msg
 end
 
+
+local function openConnection()
+	if not connection then
+		connection = assert(environment:connect(unpack(connectionData)))
+		sql.initialize(connection, connectionData)
+	end
+end
+
+
 local function createConnection(sourceName, ...)
 	require"luasql.sqlite3"
 	local fileName = (options.PERSISTENCE_PATH or '') .. (sourceName or sourceName or options.PERSISTENCE_FILENAME)
 	mkdir(dirName(fileName))
 	local env = luasql.sqlite3()
 --	print(fileName)
-	connection = assert(env:connect(fileName,...))
-	sql.initialize(connection)
+	environment = env
+	connectionData = {fileName,...}
 end
 
 
@@ -175,6 +187,7 @@ function initialize(sourceName, ...)
 	
 end
 
+
 -- finalize()
 --- finalizes the provider
 function finalize()
@@ -226,6 +239,8 @@ p('idsLeft',idsLeft)
 	
 	local tableName = '_id_' .. typeName
 	
+	openConnection()
+	
 	assertTableExists(tableName, nil, {
 		lastId=0
 	})
@@ -252,6 +267,9 @@ p('idsLeft',idsLeft)
 	
 	connection:commit()
 	connection:setautocommit(true)
+	
+	closeConnection()
+	
 	
 	p('lastIdOfSeries',lastIdOfSeries)
 	local lastId = lastIdOfSeries - seriesSize
@@ -291,6 +309,8 @@ options = setmetatable({}, {
 function persist(class, id, data)
 	local tableName = getPhysicalTableName(class)
 	
+	openConnection()
+	
 	assertTableExists(tableName, class, data)
 	
 	if sql.exists(tableName, id) then
@@ -298,6 +318,9 @@ function persist(class, id, data)
 	else
 		sql.insert(tableName, data)
 	end
+	
+	closeConnection()
+	
 	
 end
 
@@ -311,7 +334,10 @@ end
 function retrieve(class, id)
 	local tableName = getPhysicalTableName(class)
 	
+	openConnection()	
 	local list = sql.select(tableName, id)
+	closeConnection()	
+	
 	if list then
 		return list[1]
 	else
@@ -328,14 +354,17 @@ end
 function erase(class, id)
 	local tableName = getPhysicalTableName(class)
 	
-	return sql.delete(tableName, id)
-
+	openConnection()
+	local result = sql.delete(tableName, id)
+	closeConnection()
+	return result
 end 
 
 
 -- persistSimple(id, data)
 function persistSimple(id, data)
 	local tableName = '__sandbox'
+	openConnection()
 	assertTableExists(tableName, nil, {
 		id=0,
 		serialization='TEXT'
@@ -348,7 +377,7 @@ end
 function retrieveSimple(id)
 	local tableName = '__sandbox'
 	
-	local data = retrive(tableName, id)
+	local data = retrieve(tableName, id)
 	return serialize.decode(data.serialization) -- TODO: serialize.decode in utils
 end 
 
@@ -356,8 +385,10 @@ end
 -- eraseSimple(id)
 function eraseSimple(id)
 	local tableName = '__sandbox'
-	
-	return sql.delete(tableName, id)
+	openConnection()
+	local result = sql.delete(tableName, id)
+	closeConnection()
+	return result
 end 
 
 local relayFunction = function(...) return ... end
@@ -376,11 +407,14 @@ function search(class, filter, visitorFunction)
 	local tableName = getPhysicalTableName(class)
 	local list = {}
 	
+	openConnection()
 	if not sql.existTable(tableName) then
 		return list
 	end
 		
 	rows =  sql.select(tableName, nil, filter or {}) or {}
+	closeConnection()
+	
 	visitorFunction = visitorFunction or relayFunction
 	for _,data in pairs(rows or {}) do
 		--TODO: find a way of passing the list into the visitor, to allow custom sorting

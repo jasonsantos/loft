@@ -2,6 +2,8 @@
 -- Loft SQLite3 SQL syntax adapter
 ----------------------------------------------
 
+-- TODO: internationalization of messages
+
 module(..., package.seeall)
 
 local connection
@@ -204,7 +206,13 @@ function createTable(tableName, structure)
 end
 
 function existTable(tableName)
-	return connection:execute(string.format("select NULL from %s", tableName))
+	local cursor = connection:execute(string.format("select NULL from %s", tableName))	
+	if cursor then
+		local result = true
+		cursor:close()
+		return true
+	end 
+	return false
 end
 
 -----------------------------------------------------------------

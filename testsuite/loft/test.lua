@@ -61,7 +61,13 @@ assert(loft.getProvider==nil) -- mustn't see the provider
 -- registering a valid schema
 loft.registerSchema('presente', {
 	nome='';
-	descricao='';
+	descricao={ __get= function(value)
+					return loft.serialization.decode(value) or {}
+				end;
+				__set= function(value)
+					return loft.serialization.encode(value) or ''
+				end
+				};
 	url='http://amazon.com';
 	quantidadeDesejada=1;
 	quantidadeReservada=0;
