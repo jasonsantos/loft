@@ -253,33 +253,36 @@ p('idsLeft',idsLeft)
 	sql.exec(s)
 	
 	-- update id series
-	local cursor = sql.exec([[select lastId from %s]], tableName)
+	local cursor, err = sql.exec([[select lastId from %s]], tableName)
+	if (cursor) then
 	
-	assert(cursor)
-	local lastIdOfSeries = cursor:fetch()
-	cursor:close()
-	
-	-- if that table has never got any IDs
-	if not lastIdOfSeries then
-		lastIdOfSeries = seriesSize
-		sql.insert(tableName, {lastId=seriesSize})
+		local lastIdOfSeries = cursor:fetch()
+		cursor:close()
+		
+		-- if that table has never got any IDs
+		if not lastIdOfSeries then
+			lastIdOfSeries = seriesSize
+			sql.insert(tableName, {lastId=seriesSize})
+		end
+		
+		connection:commit()
+		connection:setautocommit(true)
+		
+		closeConnection()
+		
+		
+		p('lastIdOfSeries',lastIdOfSeries)
+		local lastId = lastIdOfSeries - seriesSize
+		p('lastId',lastId)
+		 
+		aNextId[typeName] = lastId + 1
+		p('aNextId[typeName]',aNextId[typeName])
+		aIdsLeft[typeName] = seriesSize - 1
+		
+		return lastId
+	else
+		return nil, err
 	end
-	
-	connection:commit()
-	connection:setautocommit(true)
-	
-	closeConnection()
-	
-	
-	p('lastIdOfSeries',lastIdOfSeries)
-	local lastId = lastIdOfSeries - seriesSize
-	p('lastId',lastId)
-	 
-	aNextId[typeName] = lastId + 1
-	p('aNextId[typeName]',aNextId[typeName])
-	aIdsLeft[typeName] = seriesSize - 1
-	
-	return lastId
 end
 
 end)()

@@ -8,7 +8,6 @@ module(..., package.seeall)
 
 local connection
 
-
 function initialize(conn)
 	connection = conn
 end
@@ -19,16 +18,19 @@ end
 --	@return query result
 function exec(sql, ...)
 	local s = string.format(sql, ...)
-	--print(s)
-	return assert(connection:execute(s)) 
+	return connection:execute(s)
 end
 
 function exists(tableName, id)
-	local cursor = exec('select id from %s where id = %d', tableName, id) 
-	local row = {} 
-	row = cursor:fetch(row)
-	cursor:close()
-	return row and row[1] or row
+	local cursor, err = exec('select id from %s where id = %d', tableName, id) 
+	local row = {}
+	if (cursor) then	
+		row = cursor:fetch(row)
+		cursor:close()
+		return row and row[1] or row
+	else
+		return nil, err
+	end
 end
 
 function select(tableName, id, filters)
@@ -88,16 +90,20 @@ function select(tableName, id, filters)
 	local limit = (limit) and ('LIMIT ' .. limit ) or ''
 	local sql = string.format('select * from %s %s %s %s %s %s', tableName, where or '', filteredById or renderedAttribs or '', orderby, offset, limit)
 
-	local cursor = assert(connection:execute(sql))
-	local row={}
-	local list={}
-	while row do
-		row = cursor:fetch({}, '*a')
-		table.insert(list, row) 
+	local cursor, err = connection:execute(sql)
+	if (cursor) then
+		local row={}
+		local list={}
+		while row do
+			row = cursor:fetch({}, '*a')
+			table.insert(list, row) 
+		end
+		cursor:close()
+	
+		return list
+	else
+		return nil, err
 	end
-	cursor:close()
-
-	return list
 end
 
 function insert(tableName, data)
