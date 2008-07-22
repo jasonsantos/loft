@@ -58,11 +58,17 @@ function select(tableName, id, filters)
 	
 	table.foreach(filters, function(field, value)
 		if string.sub(field, 1, 1) ~= '_' then
-			
-			renderedAttribs = string.format("%s%s%s='%s'", 
-				renderedAttribs or '', 
-				renderedAttribs and ' AND ' or '',
-				field, value )
+			if type(value) == 'table' then
+				renderedAttribs = string.format("%s%s%s %s '%s'", 
+					renderedAttribs or '', 
+					renderedAttribs and ' AND ' or '',
+					field, value.__operator, value[1] )
+			else
+				renderedAttribs = string.format("%s%s%s='%s'", 
+					renderedAttribs or '', 
+					renderedAttribs and ' AND ' or '',
+					field, value )
+			end
 			
 		end
 	end)

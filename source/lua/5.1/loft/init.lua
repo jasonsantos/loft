@@ -292,6 +292,11 @@ end
 -- if not, it will be loaded from persistence and restored to memory cache
 --
 -- @param filter 	table containing a set of filter conditions
+--					filters are tables with keys representing fieldnames
+--					and their correspontant values can be either strings 
+--					(when you want to filter by equalty to a specific value)
+-- 					or tables (when you want to indicate the operation).
+--					Ex.: { nome = "fulano", descricao = {__operation='like', '%gerente%' }  } 
 --					
 -- @param typeName 	the typeName of the objects to be retrieved
 -- @param visitor	(optional) function to be executed 
