@@ -20,6 +20,7 @@ build = {
    			["loft.init"] = [[../source/lua/5.1/loft/init.lua]],
    			["loft.utils"] = [[../source/lua/5.1/loft/utils.lua]],
    			["loft.providers.database.sqlite3"] = [[../source/lua/5.1/loft/providers/database/sqlite3.lua]],
+   			["loft.providers.serialization"] = [[../source/lua/5.1/loft/providers/serialization.lua]],
    			["loft.providers.sql.sqlite3"] = [[../source/lua/5.1/loft/providers/sql/sqlite3.lua]],
    		}
    	}
