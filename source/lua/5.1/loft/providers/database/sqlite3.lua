@@ -285,7 +285,8 @@ p('idsLeft',idsLeft)
 	end
 end
 
-end)()
+end)() -- creates and returns the closure
+
 
 -- options([optionTable])
 --- every provider must have a public 'options' 
