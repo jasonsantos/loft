@@ -126,7 +126,7 @@ function insert(tableName, data)
 			renderedValues = string.format("%s%s'%s'", 
 				renderedValues or '', 
 				renderedValues and ', ' or '',
-				value)
+				string.gsub(value, "'", "''"))
 		end
 	end)
 	
@@ -144,7 +144,7 @@ function update(tableName, id, data)
 			renderedAttribs = string.format("%s%s%s='%s'", 
 				renderedAttribs or '', 
 				renderedAttribs and ', ' or '',
-				field, value )
+				field, string.gsub(value, "'", "''") )
 		end
 	end)
 
