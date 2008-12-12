@@ -19,9 +19,13 @@ build = {
    		lua = {
    			["loft.init"] = [[../source/lua/5.1/loft/init.lua]],
    			["loft.utils"] = [[../source/lua/5.1/loft/utils.lua]],
-   			["loft.providers.database.sqlite3"] = [[../source/lua/5.1/loft/providers/database/sqlite3.lua]],
    			["loft.providers.serialization"] = [[../source/lua/5.1/loft/providers/serialization.lua]],
+   			["loft.providers.database.sqlite3"] = [[../source/lua/5.1/loft/providers/database/sqlite3.lua]],
+   			["loft.providers.database.mysql"] = [[../source/lua/5.1/loft/providers/database/mysql.lua]],
+   			["loft.providers.database.generic"] = [[../source/lua/5.1/loft/providers/database/generic.lua]],
    			["loft.providers.sql.sqlite3"] = [[../source/lua/5.1/loft/providers/sql/sqlite3.lua]],
+   			["loft.providers.sql.mysql"] = [[../source/lua/5.1/loft/providers/sql/mysql.lua]],
+   			["loft.providers.sql.generic"] = [[../source/lua/5.1/loft/providers/sql/generic.lua]],
    		}
    	}
 }
