@@ -1,5 +1,3 @@
-package.path = [[;;./net.luaforge.loft/source/lua/5.1/?.lua;./net.luaforge.loft/source/lua/5.1/?/init.lua;]]
-
 local now = os.clock()
 local log = function()
 	print('log: ' .. os.clock() - now)
@@ -23,9 +21,9 @@ provider.initialize('test.db3')
 local id = provider.getNextId('test')
 local firstId = id
 local times = {}
+local duplicatesTimes = {}
 
 for i=1, NUM_OF_OBJECTS_TO_GENERATE do
-	
 	-- persists a given table
 	provider.persist('test', id, {
 		id=id; 
@@ -33,15 +31,15 @@ for i=1, NUM_OF_OBJECTS_TO_GENERATE do
 		address= (i*347) .. ', Elm Street';
 	})
 	-- counts how many times this particular ID has been generated
-	times[id] = (times[id] and (times[id] + 1)) or 1
+	table.insert(times, id)
+	duplicatesTimes[id] = (duplicatesTimes[id] or 0) + 1
 	id = provider.getNextId('test')
-	
 end
  
 local generatedId = firstId
 table.foreachi(times, function(k, v)
-	assert(k == generatedId, 'generated Id is out of sequence') 
-	assert(v == 1, 'generated Id is duplicated')
+	assert(v == generatedId, 'generated Id is out of sequence') 
+	assert(duplicatesTimes[v] == 1, 'generated Id is duplicated')
 	generatedId = generatedId + 1
 end)
 
@@ -51,9 +49,7 @@ assert(id==lastId, 'wrong number of objects created')
 
 local t = provider.retrieve('test', lastId-1)
 assert(t, 'object was not retrieved for id==' .. lastId)
-
 assert(t.name == 'test' .. (lastId-firstId), 'The proper object was not retrieved')
-
 
 local list = {}
 
@@ -74,7 +70,6 @@ list = provider.search('test', {name='test99'}, function(item)
 end)
 
 assert(#list==0, 'erase did not remove the item properly')
-
 
 list = provider.search('test', {name='test98'})
 
