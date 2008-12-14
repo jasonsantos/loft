@@ -58,9 +58,6 @@ Private.connectionData = nil
 
 local function openConnection()
 	if not Private.connection then
-		
-		print(Private.connectionData.USERNAME)
-		
 		Private.connection = assert(Private.environment:connect(unpack(Private.connectionData)))
 		sql.initialize(Private.connection, Private.connectionData)
 	end
