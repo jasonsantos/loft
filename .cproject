@@ -38,6 +38,10 @@
 <storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 
 
+
+
+
+
 <storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
 <buildTargets>
 <target name="Deploy" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
@@ -59,7 +63,7 @@
 <target name="shake path" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 <buildCommand>make</buildCommand>
 <buildArguments/>
-<buildTarget>shake path=testsuite/loft</buildTarget>
+<buildTarget>shake path=testsuite/loft.provider.database.sqlite3</buildTarget>
 <stopOnError>true</stopOnError>
 <useDefaultCommand>true</useDefaultCommand>
 <runAllBuilders>true</runAllBuilders>
@@ -67,7 +71,7 @@
 <target name="Exec file" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 <buildCommand>make</buildCommand>
 <buildArguments/>
-<buildTarget>exec file=teste.lua</buildTarget>
+<buildTarget>exec file=testsuite/loft.provider.database.mysql/test.lua</buildTarget>
 <stopOnError>true</stopOnError>
 <useDefaultCommand>true</useDefaultCommand>
 <runAllBuilders>true</runAllBuilders>
