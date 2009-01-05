@@ -100,7 +100,7 @@ function select(tableName, id, filters)
 	local limit = (limit) and ('LIMIT ' .. limit ) or ''
 	local sql = string.format('select * from %s %s %s %s %s %s', tableName, where or '', filteredById or renderedAttribs or '', orderby, offset, limit)
 
-	local cursor, err = connection:execute(sql)
+	local cursor, err = exec(sql)
 	if (cursor) then
 		local row={}
 		local list={}
@@ -223,7 +223,7 @@ function createTable(tableName, structure)
 end
 
 function existTable(tableName)
-	local cursor = connection:execute(string.format("select NULL from %s", tableName))	
+	local cursor = exec("select NULL from %s", tableName)
 	if cursor then
 		local result = true
 		cursor:close()
