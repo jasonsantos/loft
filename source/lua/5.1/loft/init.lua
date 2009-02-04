@@ -12,6 +12,8 @@ local require = require
 local setmetatable = setmetatable
 local getmetatable = getmetatable
 local os = { time = os.time }
+local next = next
+local tonumber = tonumber
 
 module"loft"
 
@@ -93,7 +95,30 @@ function registerSchema(typeName, schema)
 	end
 	
 	if not allSchemas[typeName] then
-		allSchemas[typeName] = schema
+		allSchemas[typeName] = { ["__attributes"] = schema, [".tableName"] = typeName, fields = {
+			names = function ()
+				local t = {}
+				local i, v = next(schema)
+				while ( i ) do
+					table.insert(t, i)
+					i, v = next(schema, i)
+				end
+				return t
+			end,
+			types = function ()
+				local t = {}
+				local i, v = next(schema)
+				while ( i ) do
+					if (type(tonumber(v)) == "number") then
+						table.insert(t, "REAL")
+					else
+						table.insert(t, "TEXT")
+					end
+					i, v = next(schema, i)
+				end
+				return t
+			end,
+		}}
 	else
 		error"Schema already registered"
 	end
@@ -142,7 +167,7 @@ function new(typeName, data, id)
 		obj = {} 
 		rawset(obj, '__id', id)
 		rawset(obj, '__attributes', {})
-
+				
 		if getProvider().supportSchemas() then
 			rawset(obj, '__typeName', typeName)
 		end
@@ -157,10 +182,10 @@ function new(typeName, data, id)
 				
 		if class then
 			
-			for key, value in pairs(class) do
+			for key, value in pairs(class.__attributes) do
 				-- TODO: separate default values from FieldTypes in schema
 				-- TODO: register fieldTypes in object
-				obj.__attributes[key] = value			
+				obj.__attributes[key] = value	
 			end
 			
 			-- execute creation hook if present
