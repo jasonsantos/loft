@@ -225,7 +225,6 @@ end
 function existTable(tableName)
 	local cursor = exec("select NULL from %s", tableName)
 	if cursor then
-		local result = true
 		cursor:close()
 		return true
 	end 
