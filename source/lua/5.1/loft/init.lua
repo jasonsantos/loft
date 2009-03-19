@@ -34,7 +34,7 @@ function initialize(providerName, optionsTable)
 	end
 	
 	if optionsTable then
-		initialize(optionsTable.sourceName, unpack(optionsTable.connectionParameters or {}))
+		provider.initialize(optionsTable.sourceName, unpack(optionsTable.connectionParameters or {}))
 	
 		provider.options(optionsTable)
 	end
