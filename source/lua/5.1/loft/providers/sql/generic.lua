@@ -98,7 +98,7 @@ function select(tableName, id, filters)
 	local orderby = (#orderbyfields > 0) and ('ORDER BY ' .. table.concat(orderbyfields, ',')) or ''
 	local offset = (offset) and ('OFFSET ' .. offset ) or ''
 	local limit = (limit) and ('LIMIT ' .. limit ) or ''
-	local sql = string.format('select * from %s %s %s %s %s %s', tableName, where or '', filteredById or renderedAttribs or '', orderby, offset, limit)
+	local sql = string.format('select * from %s %s %s %s %s %s', tableName, where or '', filteredById or renderedAttribs or '', orderby, limit, offset)
 
 	local cursor, err = exec(sql)
 	if (cursor) then
