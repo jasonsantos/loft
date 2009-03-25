@@ -47,35 +47,35 @@
 <storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
 <buildTargets>
 <target name="Deploy" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
-<buildCommand>BuildModulesLua.bat</buildCommand>
+<buildCommand>make</buildCommand>
 <buildArguments/>
-<buildTarget>make</buildTarget>
+<buildTarget>deploy</buildTarget>
 <stopOnError>true</stopOnError>
-<useDefaultCommand>false</useDefaultCommand>
+<useDefaultCommand>true</useDefaultCommand>
 <runAllBuilders>true</runAllBuilders>
 </target>
 <target name="shakeRecursive" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
-<buildCommand>BuildModulesLua.bat</buildCommand>
+<buildCommand>make</buildCommand>
 <buildArguments/>
 <buildTarget>shake-r</buildTarget>
 <stopOnError>true</stopOnError>
-<useDefaultCommand>false</useDefaultCommand>
+<useDefaultCommand>true</useDefaultCommand>
 <runAllBuilders>true</runAllBuilders>
 </target>
 <target name="shake path" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
-<buildCommand>BuildModulesLua.bat</buildCommand>
+<buildCommand>make</buildCommand>
 <buildArguments/>
-<buildTarget>shake path=testsuite/loft.provider.database.sqlite3</buildTarget>
+<buildTarget>shake path=testsuite/loft.provider.database.mysql</buildTarget>
 <stopOnError>true</stopOnError>
-<useDefaultCommand>false</useDefaultCommand>
+<useDefaultCommand>true</useDefaultCommand>
 <runAllBuilders>true</runAllBuilders>
 </target>
 <target name="Exec file" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
-<buildCommand>BuildModulesLua.bat</buildCommand>
+<buildCommand>make</buildCommand>
 <buildArguments/>
-<buildTarget>exec file=testsuite/loft.provider.database.odbc.access/test.lua</buildTarget>
+<buildTarget>exec file=testsuite/loft.provider.database.mysql/test.lua</buildTarget>
 <stopOnError>true</stopOnError>
-<useDefaultCommand>false</useDefaultCommand>
+<useDefaultCommand>true</useDefaultCommand>
 <runAllBuilders>true</runAllBuilders>
 </target>
 </buildTargets>
