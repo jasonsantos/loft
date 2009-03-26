@@ -117,6 +117,42 @@ function select(tableName, id, filters)
 	end
 end
 
+function count(tableName, filters)
+	local renderedAttribs
+	local filters = filters or {}
+	
+	table.foreach(filters, function(field, value)
+		if string.sub(field, 1, 1) ~= '_' then
+			if type(value) == 'table' then
+				renderedAttribs = string.format("%s%s%s %s '%s'", 
+					renderedAttribs or '', 
+					renderedAttribs and ' AND ' or '',
+					field, value.__operator, value[1] )
+			else
+				renderedAttribs = string.format("%s%s%s='%s'", 
+					renderedAttribs or '', 
+					renderedAttribs and ' AND ' or '',
+					field, value )
+			end
+			
+		end
+	end)
+	
+	local where = (renderedAttribs) and 'WHERE'
+	local sql = string.format('select count(*) As _count from %s %s %s', tableName, where or '', renderedAttribs or '')
+	
+	local cursor, err = exec(sql)
+	if (cursor) then
+		local row = cursor:fetch({}, '*a')
+		cursor:close()
+		return tonumber(row and row["_count"])
+	else
+		return nil, err
+	end
+end
+
+
+
 function insert(tableName, data)
 	local renderedFields
 	local renderedValues

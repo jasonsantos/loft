@@ -393,3 +393,13 @@ function search(class, filter, visitorFunction)
 	
 	return list
 end
+
+-- count(class )
+-- @return 			number
+function count(class, filter)
+	local tableName = getPhysicalTableName(class)
+	openConnection()
+	local numbers =  sql.count(tableName, filter) or 0
+	closeConnection()
+	return numbers
+end
