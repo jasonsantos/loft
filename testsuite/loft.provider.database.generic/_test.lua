@@ -87,9 +87,21 @@ for i=1, NUM_OF_OBJECTS_TO_GENERATE / NumLimit do
 	 end)
 end
 
+_count = provider.count('test', {name='test98'})
+
+assert(_count==0, 'erase did not remove the item properly')
+
+assert( provider.count('test', {name='test1'}) == 1)
+
 list = provider.search('test', {__sort='-name', __limit=10})
 
 assert(#list==10, 'limited search has brought the wrong amount of items')
+
+assert( provider.count('test', {COLUMN_WRONG='test1'}) == 0)
+
+_count = provider.count('test')
+
+assert(_count, 'global search found the wrong amount of items')
 
 list = provider.search('test', {__sort='-name'})
 
