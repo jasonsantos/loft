@@ -280,15 +280,17 @@ function persist(class, id, data)
 	
 	assertTableExists(tableName, class, data)
 	
+	local res, err
+	
 	if sql.exists(tableName, id) then
-		sql.update(tableName, id, data)
+		res, err = sql.update(tableName, id, data)
 	else
-		sql.insert(tableName, data)
+		res, err = sql.insert(tableName, data)
 	end
 	
 	closeConnection()
 	
-	
+	return res, err
 end
 
 
