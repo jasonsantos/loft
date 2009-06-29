@@ -17,7 +17,7 @@ _m.Private.defaultOptions.SOURCENAME = nil;
 _m.createConnection = function (sourceName, ...)
 	require"luasql.mysql"
 	local env = luasql.mysql()
-
+	
 	_m.Private.environment = env
 	_m.Private.connectionData = {sourceName,...}
 end

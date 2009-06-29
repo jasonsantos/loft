@@ -34,6 +34,10 @@ function initialize(providerName, optionsTable)
 	end
 	
 	if optionsTable then
+		optionsTable.sourceName 	= optionsTable.SOURCENAME
+		--TODO: move the following line to the Specific Provider API
+		optionsTable.connectionParameters = { optionsTable.USERNAME, optionsTable.PASSWORD, optionsTable.HOSTNAME, optionsTable.PORT}
+
 		provider.initialize(optionsTable.sourceName, unpack(optionsTable.connectionParameters or {}))
 	
 		provider.options(optionsTable)
