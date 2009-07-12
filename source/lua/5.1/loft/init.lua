@@ -20,7 +20,7 @@ module"loft"
 -- the persistence provider engine to be used
 local provider = false -- none 
 
---- initializes the persistence engine. 
+--- initializes the persistence engine.
 -- sets the provider internally to be returned 
 -- when needed by the function getProvider()
 -- @param providerName 	the name of the persistence provider to be used
