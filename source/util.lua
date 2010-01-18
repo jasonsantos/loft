@@ -7,6 +7,7 @@ function table.copy(t)
 end
 
 function table.add(first, second)
+	local second = second or {}
 	for k,v in pairs(second) do
 		first[k]=v
 	end
