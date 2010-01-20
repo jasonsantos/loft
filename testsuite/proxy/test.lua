@@ -29,7 +29,7 @@ do
 end
 
 do
-	local classPerson = {'id', 'name'}
+	local classPerson = {'id', 'name'} -- fake schema
 	local obj = {id=1, name="Rose Tyler"}
 	local obj1 = {id=2, name="Martha Jones"}
 	local obj2 = {id=3, name="Donna Noble"}
@@ -52,6 +52,6 @@ do
 end
 
 do
-	local p1 = proxy.create{'person'}
-	assert(p1)
+	local p1 = proxy.create{'person'} -- no id, no object
+	assert(p1==nil)
 end

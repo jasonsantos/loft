@@ -53,8 +53,16 @@ local function set(proxy, key, value)
 	end
 end
 
-function create(entity, id, obj)
-	local id = id or (obj and obj.id) or {'new'};
+function create(entity, existing_id, obj)
+	local id = existing_id or (obj and obj.id) or {'new'};
+	
+	if obj then
+		pool[entity][id] = obj;
+		refresh[entity][id] = os.time(); -- this object was refreshed now
+	elseif not existing_id then
+		return nil
+	end
+	
 	proxy = setmetatable({}, {
 		__entity=entity,
 		__id=id,
@@ -65,11 +73,6 @@ function create(entity, id, obj)
 	
 	proxies[entity][id]= proxies[entity][id] or setmetatable({}, {__mode='v'})
 	table.insert(proxies[entity][id], proxy)
-	
-	if obj then
-		pool[entity][id] = obj;
-		refresh[entity][id] = os.time(); -- this object was refreshed now
-	end
 	
 	return proxy
 end
