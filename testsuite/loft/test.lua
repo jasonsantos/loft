@@ -4,7 +4,7 @@ require 'loft'
 
 -- Configuration api tests
 
-do -- function existence  
+do -- configure function existence  
 	assert(loft.configure)
 end
 
