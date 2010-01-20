@@ -1,9 +1,10 @@
 require "util"
+require "list"
+require "proxy"
 
 module("loft",package.seeall)
 
-local cache_pool = {}
-local register
+local object_pool = {}
 
 -- Configuration API
 -- ----------------- --
@@ -17,18 +18,50 @@ end
 
 --- register default values for loft.engine
 function configure(options)
-	local defaults = table.add(defaults, options)
-	return table.copy(defaults)
+	local defs = table.add(defaults, options)
+	return table.copy(defs)
 end
 
 -- Loft Engine Public API Table
 local api = {}
 
---- creates a new loft engine with its own options table
-function engine(options)
-	local options = prepare(options)
-	local engine = table.add({options=options}, public)
-	--TODO: startup the engine
+--- creates a new loft engine 
+-- the engine has its own options table
+-- and its own plugins table. It is possible to add plugins
+function engine(opts)
+	local options = prepare(opts)
+	local engine = table.add({options=options}, api)
+	
+	-- load provider
+	local provider_name = options.provider or 'base'
+	local provider = require('loft.providers.'..provider_name)
+	
+	-- provider initialization. 
+	-- A provider will likely want to store connection data on the engine table. 
+	-- This gives it the oportunity for preparing the engine.
+	engine.provider = provider.setup(engine) or provider
+
+	-- create publicly avaliable plugin proxies
+	-- each with a brand new configuration table, just for this provider
+	engine.plugins = {}
+	for name, plugin in pairs(loft.plugins) do
+		local plugin_config = {}
+		
+		engine.plugins[name] = setmetatable(plugin_config, {
+			__index={
+				run=function()
+					return plugin.run(plugin_config, engine)
+				end
+			},
+			__call=function(t, options)
+				table.add(plugin_config, options or {})
+				return plugin_config
+			end
+		})
+		
+		plugin.configure(plugin_config, engine)
+	end
+	
 	return engine
 end
 
@@ -39,14 +72,20 @@ local plugin_api = {}
 
 function plugin_api.add(plugin)
 	if not (plugin.name and plugin.configure and plugin.run) then
-		error"Invalid Plugin structure: plugins must have a name and a configure and run functions"
+		error("Invalid Plugin structure: plugins must have a name and a configure and run functions", 2)
+	end
+	if plugins[plugin.name] then
+		error("Plugin "..plugin.name.." already registered", 2) 
 	end
 	plugins[plugin.name] = plugin
+	return plugins
 end
 
 
 --- loft.plugins 
 -- a way to find all registered plugins
+-- plugins are registered in the table itself
+-- but the table can also be used to access the plugin API
 plugins = setmetatable({}, {__index=plugin_api})
 
 -- Engine API
