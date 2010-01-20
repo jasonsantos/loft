@@ -170,3 +170,13 @@ do -- testing the 'new' method on the public API
 	local o = L.new({'Simple'},{name='Barbara Wright'})
 	assert(o.name=='Barbara Wright')
 end
+
+do -- testing the 'get' method on the public API
+	local Person = {'Simple'}
+	local L = loft.engine()
+	local o = L.new(Person,{id=1, name='Susan Foreman'})
+	assert(o.name=='Susan Foreman')
+	local o1=L.get(Person, 1)
+	assert(o1.name=='Susan Foreman')
+end
+

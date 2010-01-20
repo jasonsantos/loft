@@ -119,7 +119,17 @@ end
 -- @param id 		ID of the object to be retrieved
 -- @return 			object recovered
 function api.get(entity, id)
-	error'not implemented'
+	local obj = proxy.create(entity, id)
+	
+	if obj then
+		return obj
+	end
+	
+	local provider = entity.options and entity.options.provider or {}
+	
+	local data = provider.retrieve and provider.retrieve(entity, id)
+	
+	return data and api.new(entity, data, id)
 end
 
 --- Finds a list of objects matching a given set of filters.
@@ -171,7 +181,8 @@ function api.destroy(obj)
 	error'not implemented'
 end
 
-
+--- Initialize a schema to be used with Loft
+-- entities  and objects will receive Loft methods
 function api.decorate(schema, options)
 	error'not implemented'
 end

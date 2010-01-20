@@ -63,6 +63,13 @@ function create(entity, existing_id, obj)
 		return nil
 	end
 	
+	local age = refresh[entity][id] and os.time() - refresh[entity][id]
+	local max_age = entity.options and entity.options.max_age or 10
+	
+	if age and age>max_age then
+		return nil
+	end
+	
 	proxy = setmetatable({}, {
 		__entity=entity,
 		__id=id,
