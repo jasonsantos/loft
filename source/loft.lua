@@ -112,17 +112,6 @@ function api.new(entity, data, id)
 	return proxy.create(entity, id, obj)
 end
 
---- Saves the object to the persistence.
--- if object has a complex type, saves to the appropriate repository
--- if object has a simple type, saves according to the object ID
--- @param obj object to be saved
--- @param force boolean indicating whethe the object is to be saved even if it's not changed
--- @return boolean indicating whether the object needed to be saved or not (i.e. if it was changed since its last)
-function api.save(obj, force)
-	error'not implemented'
-end
-
-
 --- Recovers an object by its ID.
 -- if object is already in memory cache and its time_to_live is still valid, it is obtained directly from there
 -- if not, it will be loaded from persistence and restored to memory cache
@@ -130,15 +119,6 @@ end
 -- @param id 		ID of the object to be retrieved
 -- @return 			object recovered
 function api.get(entity, id)
-	error'not implemented'
-end
-
---- Destroys an object.
--- remove it from memory and persistence. 
---
--- @param obj object to be destroyed
--- @return true if object was successfully erased from persistence
-function api.destroy(obj)
 	error'not implemented'
 end
 
@@ -169,6 +149,28 @@ end
 function api.find(entity, options)
 	error'not implemented'
 end
+
+
+--- Saves the object to the persistence.
+-- if object has a complex type, saves to the appropriate repository
+-- if object has a simple type, saves according to the object ID
+-- @param obj object to be saved
+-- @param force boolean indicating whethe the object is to be saved even if it's not changed
+-- @return boolean indicating whether the object needed to be saved or not (i.e. if it was changed since its last)
+function api.save(obj, force)
+	error'not implemented'
+end
+
+
+--- Destroys an object.
+-- remove it from memory and persistence. 
+--
+-- @param obj object to be destroyed
+-- @return true if object was successfully erased from persistence
+function api.destroy(obj)
+	error'not implemented'
+end
+
 
 function api.decorate(schema, options)
 	error'not implemented'
