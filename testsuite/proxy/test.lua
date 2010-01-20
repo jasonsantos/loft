@@ -51,3 +51,7 @@ do
 
 end
 
+do
+	local p1 = proxy.create{'person'}
+	assert(p1)
+end
