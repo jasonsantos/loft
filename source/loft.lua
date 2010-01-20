@@ -100,7 +100,16 @@ plugins = setmetatable({}, {__index=plugin_api})
 -- @param id 		(optional) ID of the object to be restored
 -- @return new object of the designated type or a simple object
 function api.new(entity, data, id)
-	error'not implemented'
+	local id = id or (data and data.id) or false
+	
+	-- TODO: usar estrutura do schema novo para inicializar objeto
+	local obj = data or {}
+
+	if type(entity)~='table' then
+		error("Object must belong to a valid entity",2)
+	end
+	
+	return proxy.create(entity, id, obj)
 end
 
 --- Saves the object to the persistence.

@@ -164,3 +164,9 @@ do -- test separated plugin configurations for different engines
 	assert(p1.run()=='Anil')
 	assert(p2.run()=='Byes')
 end
+
+do -- testing the 'new' method on the public API
+	local L = loft.engine()
+	local o = L.new({'Simple'},{name='Barbara Wright'})
+	assert(o.name=='Barbara Wright')
+end
