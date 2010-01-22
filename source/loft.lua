@@ -1,9 +1,10 @@
 require "util"
+require "list"
+require "proxy"
 
 module("loft",package.seeall)
 
-local cache_pool = {}
-local register
+local object_pool = {}
 
 -- Configuration API
 -- ----------------- --
@@ -17,18 +18,50 @@ end
 
 --- register default values for loft.engine
 function configure(options)
-	local defaults = table.add(defaults, options)
-	return table.copy(defaults)
+	local defs = table.add(defaults, options)
+	return table.copy(defs)
 end
 
 -- Loft Engine Public API Table
 local api = {}
 
---- creates a new loft engine with its own options table
-function engine(options)
-	local options = prepare(options)
-	local engine = table.add({options=options}, public)
-	--TODO: startup the engine
+--- creates a new loft engine 
+-- the engine has its own options table
+-- and its own plugins table. It is possible to add plugins
+function engine(opts)
+	local options = prepare(opts)
+	local engine = table.add({options=options}, api)
+	
+	-- load provider
+	local provider_name = options.provider or 'base'
+	local provider = require('loft.providers.'..provider_name)
+	
+	-- provider initialization. 
+	-- A provider will likely want to store connection data on the engine table. 
+	-- This gives it the oportunity for preparing the engine.
+	engine.provider = provider.setup(engine) or provider
+
+	-- create publicly avaliable plugin proxies
+	-- each with a brand new configuration table, just for this provider
+	engine.plugins = {}
+	for name, plugin in pairs(loft.plugins) do
+		local plugin_config = {}
+		
+		engine.plugins[name] = setmetatable(plugin_config, {
+			__index={
+				run=function()
+					return plugin.run(plugin_config, engine)
+				end
+			},
+			__call=function(t, options)
+				table.add(plugin_config, options or {})
+				return plugin_config
+			end
+		})
+		
+		plugin.configure(plugin_config, engine)
+	end
+	
 	return engine
 end
 
@@ -39,14 +72,20 @@ local plugin_api = {}
 
 function plugin_api.add(plugin)
 	if not (plugin.name and plugin.configure and plugin.run) then
-		error"Invalid Plugin structure: plugins must have a name and a configure and run functions"
+		error("Invalid Plugin structure: plugins must have a name and a configure and run functions", 2)
+	end
+	if plugins[plugin.name] then
+		error("Plugin "..plugin.name.." already registered", 2) 
 	end
 	plugins[plugin.name] = plugin
+	return plugins
 end
 
 
 --- loft.plugins 
 -- a way to find all registered plugins
+-- plugins are registered in the table itself
+-- but the table can also be used to access the plugin API
 plugins = setmetatable({}, {__index=plugin_api})
 
 -- Engine API
@@ -61,19 +100,17 @@ plugins = setmetatable({}, {__index=plugin_api})
 -- @param id 		(optional) ID of the object to be restored
 -- @return new object of the designated type or a simple object
 function api.new(entity, data, id)
-	error'not implemented'
-end
+	local id = id or (data and data.id) or false
+	
+	-- TODO: usar estrutura do schema novo para inicializar objeto
+	local obj = data or {}
 
---- Saves the object to the persistence.
--- if object has a complex type, saves to the appropriate repository
--- if object has a simple type, saves according to the object ID
--- @param obj object to be saved
--- @param force boolean indicating whethe the object is to be saved even if it's not changed
--- @return boolean indicating whether the object needed to be saved or not (i.e. if it was changed since its last)
-function api.save(obj, force)
-	error'not implemented'
+	if type(entity)~='table' then
+		error("Object must belong to a valid entity",2)
+	end
+	
+	return proxy.create(entity, id, obj)
 end
-
 
 --- Recovers an object by its ID.
 -- if object is already in memory cache and its time_to_live is still valid, it is obtained directly from there
@@ -82,16 +119,17 @@ end
 -- @param id 		ID of the object to be retrieved
 -- @return 			object recovered
 function api.get(entity, id)
-	error'not implemented'
-end
-
---- Destroys an object.
--- remove it from memory and persistence. 
---
--- @param obj object to be destroyed
--- @return true if object was successfully erased from persistence
-function api.destroy(obj)
-	error'not implemented'
+	local obj = proxy.create(entity, id)
+	
+	if obj then
+		return obj
+	end
+	
+	local provider = entity.options and entity.options.provider or {}
+	
+	local data = provider.retrieve and provider.retrieve(entity, id)
+	
+	return data and api.new(entity, data, id)
 end
 
 --- Finds a list of objects matching a given set of filters.
@@ -122,60 +160,29 @@ function api.find(entity, options)
 	error'not implemented'
 end
 
-function api.decorate(schema, options)
+
+--- Saves the object to the persistence.
+-- if object has a complex type, saves to the appropriate repository
+-- if object has a simple type, saves according to the object ID
+-- @param obj object to be saved
+-- @param force boolean indicating whethe the object is to be saved even if it's not changed
+-- @return boolean indicating whether the object needed to be saved or not (i.e. if it was changed since its last)
+function api.save(obj, force)
 	error'not implemented'
 end
 
---[=========[
-local method_persists = {
-	save = function (entity, provider)
-		return function (obj)
-			local id = obj.id
-			id = provider.persist(entity, id, obj)
-			obj.id = obj.id or id
-		end
-	end
-}
 
-local methods = {
-	new = function (entity, provider) 
-		return function ()
-			local t = register(entity, provider)
-			return t
-		end
-	end
-}
-
-register = function (entity, provider)
-	local t = {}
-	cache_pool[tostring(t)] = t
-	
-	for method_name, method in pairs(method_persists) do
-		t[method_name] = method(entity, provider)
-	end
-	
-	return t
+--- Destroys an object.
+-- remove it from memory and persistence. 
+--
+-- @param obj object to be destroyed
+-- @return true if object was successfully erased from persistence
+function api.destroy(obj)
+	error'not implemented'
 end
 
-local decorate = function (options)
-	local provider = require('loft.providers.'..options.provider)
-
-	return function (schema)
-		local entities = schema.entities or {}
-		for entity_name, entity in pairs(entities) do
-			for method_name, method in pairs(methods) do
-				entity[method_name] = method(entity, provider)
-			end
-		end
-		return schema.entities
-	end
+--- Initialize a schema to be used with Loft
+-- entities  and objects will receive Loft methods
+function api.decorate(schema, options)
+	error'not implemented'
 end
-
-function init(options)
-	local options = options or {}
-	
-	return {
-		decorate = decorate(options)
-	}
-end
-]=========]
