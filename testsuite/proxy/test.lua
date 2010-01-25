@@ -55,3 +55,27 @@ do
 	local p1 = proxy.create{'person'} -- no id, no object
 	assert(p1==nil)
 end
+
+do -- testing the touchy side of proxy
+	local o = proxy.create('Alien', nil, {name="E.T."})
+	local p = proxy.create('Alien', nil, {name="Spock"})
+	assert(proxy.is_dirty(o))
+	assert(proxy.is_dirty(p))
+	proxy.reset(o)
+	assert(not proxy.is_dirty(o))
+	assert(proxy.is_dirty(p))
+	proxy.touch(o)
+	proxy.reset(p)
+	assert(proxy.is_dirty(o))
+	assert(not proxy.is_dirty(p))
+end
+
+do -- testing invalidate proxy
+	local o = proxy.create('Fish', nil, {name="Flubby"})
+	local p = proxy.create('Fish', nil, {name="Wanda"})
+	proxy.invalidate(p)
+	assert(not p.name)
+	local x = pcall(proxy.get_object, p)
+	assert(not x)
+	assert(o.name=='Flubby')
+end
