@@ -100,11 +100,19 @@ do -- engine function existence
 end
 
 do -- simple call return
-	assert(type(loft.engine())=='table')
+	package.loaded['loft.providers.mock'] = {
+		setup=function(engine)
+		end
+	}
+	assert(type(loft.engine{provider='mock'})=='table')
 end
 
 do -- engine structure is valid
-	local L = loft.engine()
+	package.loaded['loft.providers.mock'] = {
+		setup=function(engine)
+		end
+	}
+	local L = loft.engine{provider='mock'}
 	assert(L.new)
 	assert(L.save)
 	assert(L.get)
@@ -114,6 +122,11 @@ do -- engine structure is valid
 end
 
 do -- engine separation on plugins
+	package.loaded['loft.providers.mock'] = {
+		setup=function(engine)
+		end
+	}
+
 	local counter = 0
 	loft.plugins.add{
 		name = 'engine_setup',
@@ -123,8 +136,8 @@ do -- engine separation on plugins
 		end,
 		run = function(...) end
 	}
-	local L = loft.engine()
-	local M = loft.engine()
+	local L = loft.engine{provider='mock'}
+	local M = loft.engine{provider='mock'}
 	assert(L.test==1)
 	assert(M.test==2)
 end
@@ -142,6 +155,10 @@ do -- test of provider loading throu require
 end
 
 do -- test separated plugin configurations for different engines
+	package.loaded['loft.providers.mock'] = {
+		setup=function(engine)
+		end
+	}
 	loft.plugins.add{
 		name = 'isolated_plugin',
 		configure = function(plugin, engine)
@@ -150,8 +167,8 @@ do -- test separated plugin configurations for different engines
 			return plugin.property .. tostring(engine.options.random_property)
 		end
 	}
-	local L = loft.engine()
-	local M = loft.engine{ random_property = 'yes' }
+	local L = loft.engine{provider='mock'}
+	local M = loft.engine{provider='mock', random_property = 'yes'}
 	
 	local p1 = L.plugins.isolated_plugin{ property='A' }
 	local p2 = M.plugins.isolated_plugin{ property='B' }
@@ -166,17 +183,84 @@ do -- test separated plugin configurations for different engines
 end
 
 do -- testing the 'new' method on the public API
-	local L = loft.engine()
+	package.loaded['loft.providers.mock'] = {
+		setup=function(engine)
+		end
+	}
+	local L = loft.engine{provider='mock'}
 	local o = L.new({'Simple'},{name='Barbara Wright'})
 	assert(o.name=='Barbara Wright')
 end
 
 do -- testing the 'get' method on the public API
 	local Person = {'Simple'}
-	local L = loft.engine()
+	local L = loft.engine{provider='mock'}
 	local o = L.new(Person,{id=1, name='Susan Foreman'})
 	assert(o.name=='Susan Foreman')
 	local o1=L.get(Person, 1)
 	assert(o1.name=='Susan Foreman')
 end
 
+do -- testing the 'save' method on the public API
+	local name
+	package.loaded['loft.providers.mock'] = {
+		setup=function(engine)
+		end,
+		persist=function(e,id,data)
+			name = data.name
+		end
+	}
+	
+	local L = loft.engine{provider='mock'}
+	local o = L.new({'Person'},{id=1, name='Susan Foreman'})
+	L.save(o)
+	assert(name=='Susan Foreman')
+end
+
+do -- testing the 'save' method with id updating on proxies
+	local name
+	local savedId = 1
+	local inc = function() savedId = savedId + 1; return savedId end
+	package.loaded['loft.providers.mock'] = {
+		setup=function(engine)
+		end,
+		persist=function(e,id,data)
+			name = data.name
+			data.id = type(id)~='table' and id or inc()
+		end
+	}
+	
+	local L = loft.engine{provider='mock'}
+	local o = L.new({'Person'},{ name='Martha Jones'})
+	L.save(o)
+	assert(name =='Martha Jones')
+	assert(o.id == savedId)
+	local p = L.new({'Person'},{ id=33, name='Rose Tyler'})
+	L.save(p)
+	assert(name =='Rose Tyler')
+	assert(p.id == 33)
+end
+
+
+do -- testing the 'destroy' method on the public API
+	package.loaded['loft.providers.mock'] = {
+		setup=function(engine)
+		end,
+		persist=function(e,id,data)
+			-- yea, persisting
+		end,
+		erase=function(e,id)
+			-- oh, erasing alright
+			return true
+		end
+	}
+	local L = loft.engine{provider='mock'}
+	local o = L.new({'Person'},{id=1, name='Jack Harkness'})
+	L.save(o)
+	
+	assert(o.name=='Jack Harkness')
+	
+	assert(L.destroy(o))
+	
+	assert(not o.name)
+end

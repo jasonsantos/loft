@@ -27,11 +27,12 @@ local function update_id(proxy, newid)
 	local all_proxies = proxies[entity][id];
 	for _,p in ipairs(all_proxies) do
 		getmetatable(p).__id = newid
+		obj.id = newid
 	end
-	proxies[entity][newid] = proxies[entity][id]
-	proxies[entity][id] = nil
+	proxies[entity][newid] = proxies[entity][id];
+	proxies[entity][id] = nil;
 	pool[entity][newid] = obj;
-	pool[entity][id] = nil
+	pool[entity][id] = nil;
 end
 
 function get_entity(proxy)
@@ -68,6 +69,8 @@ function invalidate(proxy)
 	proxies[entity][id] = {}
 	
 	pool[entity][id] = nil
+	
+	return true
 end
 
 function touch(proxy)
@@ -107,9 +110,9 @@ local function set(proxy, key, value)
 	
 	if key=='id' then
 		update_id(proxy, value)
-	else
-		o[key]=value
 	end
+	
+	o[key]=value
 end
 
 function create(entity, existing_id, obj)

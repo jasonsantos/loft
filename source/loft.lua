@@ -22,15 +22,15 @@ function configure(options)
 	return table.copy(defs)
 end
 
--- Loft Engine Public API Table
-local api = {}
+local engine_api
 
 --- creates a new loft engine 
 -- the engine has its own options table
 -- and its own plugins table. It is possible to add plugins
 function engine(opts)
+	
 	local options = prepare(opts)
-	local engine = table.add({options=options}, api)
+	local engine = {options=options}
 	
 	-- load provider
 	local provider_name = options.provider or 'base'
@@ -62,7 +62,7 @@ function engine(opts)
 		plugin.configure(plugin_config, engine)
 	end
 	
-	return engine
+	return engine_api(engine)
 end
 
 -- Plugin API
@@ -90,99 +90,153 @@ plugins = setmetatable({}, {__index=plugin_api})
 
 -- Engine API
 -- ----------------- --
-
---- Creates a new instance of an object
--- alternatively, can turn a simple table into an object
--- can also be used to recreate objects from their data tables
--- @param entity	schema entity object or its name
---					if no entity is designated, a simple table object will be created
--- @param data 		(optional) table with data to be loaded into object
--- @param id 		(optional) ID of the object to be restored
--- @return new object of the designated type or a simple object
-function api.new(entity, data, id)
-	local id = id or (data and data.id) or false
+engine_api=function(engine) 
 	
-	-- TODO: usar estrutura do schema novo para inicializar objeto
-	local obj = data or {}
-
-	if type(entity)~='table' then
-		error("Object must belong to a valid entity",2)
+	-- Loft Engine Public API Table
+	local api = engine or {}
+	
+	
+	--- Creates a new instance of an object
+	-- alternatively, can turn a simple table into an object
+	-- can also be used to recreate objects from their data tables
+	-- @param entity	schema entity object or its name
+	--					if no entity is designated, a simple table object will be created
+	-- @param data 		(optional) table with data to be loaded into object
+	-- @param id 		(optional) ID of the object to be restored
+	-- @return new object of the designated type or a simple object
+	function api.new(entity, data, id)
+		local id = id or (data and data.id) or false
+		
+		-- TODO: usar estrutura do schema novo para inicializar objeto
+		local obj = data or {}
+	
+		if type(entity)~='table' then
+			error("Object must belong to a valid entity",2)
+		end
+		
+		return proxy.create(entity, id, obj)
 	end
 	
-	return proxy.create(entity, id, obj)
-end
-
---- Recovers an object by its ID.
--- if object is already in memory cache and its time_to_live is still valid, it is obtained directly from there
--- if not, it will be loaded from persistence and restored to memory cache
--- @param entity 	schema entity of the object to be retrieved
--- @param id 		ID of the object to be retrieved
--- @return 			object recovered
-function api.get(entity, id)
-	local obj = proxy.create(entity, id)
-	
-	if obj then
-		return obj
+	--- Recovers an object by its ID.
+	-- if object is already in memory cache and its time_to_live is still valid, it is obtained directly from there
+	-- if not, it will be loaded from persistence and restored to memory cache
+	-- @param entity 	schema entity of the object to be retrieved
+	-- @param id 		ID of the object to be retrieved
+	-- @return 			object recovered
+	function api.get(entity, id)
+		local obj = proxy.create(entity, id)
+		
+		if obj then
+			return obj
+		end
+		
+		local provider = entity.options and entity.options.provider or engine.provider or {}
+		
+		local data = provider.retrieve and provider.retrieve(entity, id)
+		
+		return data and api.new(entity, data, id)
 	end
 	
-	local provider = entity.options and entity.options.provider or {}
+	--- Finds a list of objects matching a given set of filters.
+	-- foreach given object matching the criteria, if it is already 
+	-- in memory cache, it is obtained directly from there
+	-- if not, it will be loaded from persistence and restored to memory cache
+	--
+	-- @param entity 	schema entity of the objects to be retrieved
+	-- @param options	table containing the criteria for the retrieval of objects
+	-- 
+	--  entity			alternate place to put the entity param 
+	-- 
+	--  order			array containing a list of fields to be used in the sorting clauses 
+	-- 
+	--  filter		 	table containing a set of filter conditions
+	--					filters are tables with keys representing fieldnames
+	--					and their correspontant values can be either strings 
+	--					(when you want to filter by equalty to a specific value)
+	-- 					arrays (when you want to indicate multiple possible values)
+	--					or tables (when you want to indicate a distinct comparison operation).
+	--					Ex.: { nome = "fulano", state = {1, 4, 6}, {like= '%manager%'} } 
+	--					
+	--	visitor			function to be executed every time an item is found in persistence
+	--
+	-- @return 			list with all objects recovered
 	
-	local data = provider.retrieve and provider.retrieve(entity, id)
+	function api.find(entity, options)
+		error'not implemented'
+	end
 	
-	return data and api.new(entity, data, id)
-end
+	
+	--- Saves the object to the persistence.
+	-- if object has a complex type, saves to the appropriate repository
+	-- if object has a simple type, saves according to the object ID
+	-- @param obj object to be saved
+	-- @param force boolean indicating whethe the object is to be saved even if it's not changed
+	-- @return boolean indicating whether the object needed to be saved or not (i.e. if it was changed since its last)
+	function api.save(obj, force)
+		if not proxy.is_dirty(obj) and not force then
+			return false
+		end
+		
+		local entity = proxy.get_entity(obj)
+		local data = proxy.get_object(obj)
+		if not entity or not data then
+			error('invalid object', 2)
+		end
+		
+		local provider = entity.options and entity.options.provider or engine.provider or {}
+		if not provider.persist then
+			error('Invalid persistence provider')
+		end
+		
+		local id = proxy.get_id(obj)
+		
+		provider.persist(entity, id, data)
+		
+		if data.id and data.id ~= id then
+			obj.id = data.id
+		end
+		
+		proxy.reset(obj)
+		
+		return true
+	end
+	
+	
+	--- Destroys an object.
+	-- remove it from memory and persistence. 
+	--
+	-- @param obj object to be destroyed
+	-- @param force boolean indicating whethe the object is to be saved even if it has been changed
+	-- @return true if object was successfully erased from persistence
+	function api.destroy(obj, force)
+		if proxy.is_dirty(obj) and not force then
+			--TODO: add an option for always forcing deletions
+			return false, "Cannot delete a changed object (unless 'force' is selected)"
+		end
+		
+		local entity = proxy.get_entity(obj)
+		local id = proxy.get_id(obj)
+		if not entity or not id then
+			error('invalid object', 2)
+		end
 
---- Finds a list of objects matching a given set of filters.
--- foreach given object matching the criteria, if it is already 
--- in memory cache, it is obtained directly from there
--- if not, it will be loaded from persistence and restored to memory cache
---
--- @param entity 	schema entity of the objects to be retrieved
--- @param options	table containing the criteria for the retrieval of objects
--- 
---  entity			alternate place to put the entity param 
--- 
---  order			array containing a list of fields to be used in the sorting clauses 
--- 
---  filter		 	table containing a set of filter conditions
---					filters are tables with keys representing fieldnames
---					and their correspontant values can be either strings 
---					(when you want to filter by equalty to a specific value)
--- 					arrays (when you want to indicate multiple possible values)
---					or tables (when you want to indicate a distinct comparison operation).
---					Ex.: { nome = "fulano", state = {1, 4, 6}, {like= '%manager%'} } 
---					
---	visitor			function to be executed every time an item is found in persistence
---
--- @return 			list with all objects recovered
+		local provider = entity.options and entity.options.provider or engine.provider or {}
+		if not provider.erase then
+			error('Invalid persistence provider')
+		end
+		
+		if provider.erase(entity, id) then
+			return proxy.invalidate(obj)
+		end
+		
+		return false
+	end
+	
+	--- Initialize a schema to be used with Loft
+	-- entities  and objects will receive Loft methods
+	function api.decorate(schema, options)
+		error'not implemented'
+	end
 
-function api.find(entity, options)
-	error'not implemented'
-end
-
-
---- Saves the object to the persistence.
--- if object has a complex type, saves to the appropriate repository
--- if object has a simple type, saves according to the object ID
--- @param obj object to be saved
--- @param force boolean indicating whethe the object is to be saved even if it's not changed
--- @return boolean indicating whether the object needed to be saved or not (i.e. if it was changed since its last)
-function api.save(obj, force)
-	error'not implemented'
-end
-
-
---- Destroys an object.
--- remove it from memory and persistence. 
---
--- @param obj object to be destroyed
--- @return true if object was successfully erased from persistence
-function api.destroy(obj)
-	error'not implemented'
-end
-
---- Initialize a schema to be used with Loft
--- entities  and objects will receive Loft methods
-function api.decorate(schema, options)
-	error'not implemented'
+	return api
 end
