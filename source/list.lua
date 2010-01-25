@@ -14,7 +14,7 @@ local function findPage(idx, pageSize)
 	return math.ceil(idx/ pageSize), ((idx-1)% pageSize)+1
 end
 
-local function setCurrentItem(o, idx)
+local function setCurrentItem(l, idx, o)
 	o.position = idx
 	
 	if idx<1 or idx>o.count then
@@ -93,7 +93,7 @@ List = {
 	moveTo=function(l, idx)
 		local o = listmetadata[l]
 		if not o.loaded or idx~=o.position then
-			setCurrentItem(o, idx)
+			setCurrentItem(l, idx, o)
 		end
 		return o.currentItem
 	end,
