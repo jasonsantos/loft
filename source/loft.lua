@@ -131,7 +131,9 @@ engine_api=function(engine)
 		end
 		
 		local provider = entity.options and entity.options.provider or engine.provider or {}
-		
+		if not provider.retrieve then
+			error('Invalid persistence provider')
+		end
 		local data = provider.retrieve and provider.retrieve(entity, id)
 		
 		return data and api.new(entity, data, id)
@@ -145,7 +147,8 @@ engine_api=function(engine)
 	-- @param entity 	schema entity of the objects to be retrieved
 	-- @param options	table containing the criteria for the retrieval of objects
 	-- 
-	--  entity			alternate place to put the entity param 
+	--  entity			alternate place to put the entity param. It can alson be put in 
+	--				    position [1] of the options table.
 	-- 
 	--  order			array containing a list of fields to be used in the sorting clauses 
 	-- 
@@ -162,7 +165,30 @@ engine_api=function(engine)
 	-- @return 			list with all objects recovered
 	
 	function api.find(entity, options)
-		error'not implemented'
+		local options = options or entity
+		local entity = options.entity or entity
+		local order = options.order or {}
+		local filters = options.filters or {}
+		
+		local results = {}
+		
+		local visitor = options.visitor or function(n, data)
+			local id = data.id
+			local obj = api.new(entity, data, id)
+			table.insert(results, obj)
+		end
+		
+		local provider = entity.options and entity.options.provider or engine.provider or {}
+		if not provider.search then
+			error('Invalid persistence provider')
+		end
+		provider.search(entity, {entity=entity, filters=filters, order=order, visitor=visitor})
+		
+		if list and not options.noLists then
+			results = list.create(results)
+		end
+		
+		return results
 	end
 	
 	

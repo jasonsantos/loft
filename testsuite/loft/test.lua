@@ -264,3 +264,32 @@ do -- testing the 'destroy' method on the public API
 	
 	assert(not o.name)
 end
+
+do -- testing the find method on the public API
+	local result = {
+				{id=1, name='Rose Tyler'},
+				{id=2, name='Martha Jones'},
+			};
+			
+	package.loaded['loft.providers.mock'] = {
+		setup=function(engine)
+		end,
+		search=function(e,options)
+			local fn = options.visitor
+			table.foreach(result, fn)
+		end
+	}
+	
+	local L = loft.engine{provider='mock'}
+	
+	local l = L.find({'Person'}, {})
+	for idx,o in ipairs(l) do
+		assert(o.name==result[idx].name)
+	end
+	-- using the list iterator
+	local idx = 1
+	for o in l do
+		assert(o.name==result[idx].name)
+		idx = idx + 1
+	end
+end
