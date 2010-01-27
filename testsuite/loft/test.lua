@@ -274,7 +274,7 @@ do -- testing the find method on the public API
 	package.loaded['loft.providers.mock'] = {
 		setup=function(engine)
 		end,
-		search=function(e,en,options)
+		search=function(e,options)
 			local fn = options.visitor
 			table.foreach(result, fn)
 		end
@@ -292,5 +292,33 @@ do -- testing the find method on the public API
 		assert(o.name==result[idx].name)
 		idx = idx + 1
 	end
+end
+
+
+do -- testing the count method on the public API
+	local result = {
+				{id=1, name='Rose Tyler'},
+				{id=2, name='Martha Jones'},
+			};
+			
+	package.loaded['loft.providers.mock'] = {
+		setup=function(engine)
+		end,
+		search=function(e,options)
+			local fn = options.visitor
+			table.foreach(result, fn)
+		end,
+		count=function(e,options)
+			return #result
+		end
+	}
+	
+	local L = loft.engine{provider='mock'}
+	
+	local l = L.find({'Person'}, {})
+	local n = L.count({'Person'}, {})
+	
+	assert(n==2)
+	assert(n==#l)
 end
 

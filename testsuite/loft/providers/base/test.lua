@@ -2,6 +2,14 @@ package.path = package.path .. ";;../../source/?.lua"
 
 local schema = require'schema'
 
+package.preload['luasql.base']= function()
+	return {
+		connect = function(...)
+			
+		end,
+	}
+end
+
 local default = schema.expand(function ()
 	info = entity {
 		name = 'info',

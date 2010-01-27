@@ -2,9 +2,63 @@ local cosmo = require 'cosmo'
 
 require'util'
 
+----------------------------------------------
+-- Persistence Provider for the Loft Module
+----------------------------------------------
+-- 
+
 module("base", package.seeall)
 
 description = [[Generic Module for Database Behaviour]]
+
+-- ######################################### --
+-- # API
+-- ######################################### --
+--  All persistence providers must implement 
+--  this API to respond to the Loft engine
+--  the 'base' provider will provide all of these 
+--  interfaces, and you can extended them
+--  in your own providers 
+-----------------------------------------------
+
+-- -------------- --
+-- PROPERTIES
+-- -------------- --
+
+-- quotes
+-- filters.like
+-- filters.contains
+-- escapes.quotes
+-- escapes.new_lines
+-- escapes.reserved_field_name
+
+-- database_type
+-- reserved_words
+-- field_types
+-- sql
+
+-- -------------- --
+-- FUNCTIONS
+-- -------------- --
+
+-- setup(engine)
+
+-- create(engine, entity)
+-- persist(engine, entity, id, data)
+-- retrieve(engine, entity, id)
+-- delete(engine, entity, id)
+
+-- search(engine, options)
+-- count(engine, options)
+
+
+
+-- ######################################### --
+--  OPTIONS
+-- ######################################### --
+--  this provider default options
+
+database_type = 'base'
 
 reserved_words = {
 	'and', 'fulltext', 'table'
@@ -17,7 +71,7 @@ filters = {
 	end,
 	
 	contains =function(f,s) 
-		return string.format("CONTAIS(%s, %s)", f, s)
+		return string.format("CONTAINS(%s, %s)", f, s)
 	end,
 
 }
@@ -71,13 +125,18 @@ sql = {
 	
 	UPDATE = [[UPDATE $table_name SET $data{", "}[=[$escape_field_name{$column_name}=$value$sep]=] WHERE id = $id]],
 	
-	SELECT = [==[SELECT ($columns{", "}[[$column_name as $name$sep]]) FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[[ LIMIT $pagination|limit OFFSET $pagination|offset]]]==],
+	SELECT = [==[SELECT $columns{", "}[[$column_name as $name$sep]] FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[[ LIMIT $pagination|limit OFFSET $pagination|offset]]]==],
 	
 	DELETE = [==[DELETE FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==]
 	
 }
 
-local passover_function = function(v) return v end
+-- ######################################### --
+--  INTERNALS
+-- ######################################### --
+
+
+local passover_function = function(...) return ... end
 
 local field_type = function(field)
 	local field_type_name = field.type
@@ -166,8 +225,82 @@ local filters_fill_cosmo = function (table_fill_cosmo, _filters)
 	end
 end
 
--- API publica
--- ----------- --
+-- ######################################### --
+--  DATABASE ENGINE
+-- ######################################### --
+
+
+database_engine = {}
+
+--- Initializes the database engine and its closure-controled state
+function database_engine.dbinit(engine, connection_params)
+	local luasql
+	local db = database_engine
+	local connection
+	local cursors = {}
+	
+	db.open_connection = function()
+		local luasql = luasql or require("luasql." .. database_type)
+		local engine = engine or luasql()
+		local connection = connection or engine:connect(unpack(connection_params))
+		
+		return connection
+	end  
+
+	db.close_connection = function()
+		local conn = connection
+		connection = nil
+		
+		for idx,c in ipairs(cursors) do
+			if c then
+				c:close();
+				cursors[idx]=nil
+			end
+		end
+		conn:close()
+	end  
+
+	db.exec = function(sql, ...)
+		--TODO: think about connection closing strategies
+		
+		local params = {...}
+		local connection = connection or engine.open_connection()
+		
+		if not connection then
+			error('Connection to the database could not be established')
+		end
+		
+		local cursor = assert(connection:execute(string.format(sql, ...)))
+		if type(cursor)~='number' then
+			local n = #cursors+1
+			cursors[n]=cursor
+			
+			local value = cursor:fetch({},'a')
+			if not value then
+				cursor:close()
+				db.cursors[n] = nil
+			end
+
+			-- returns an iterator function
+			return function()
+				local valueToReturn = value
+				value = cursor:fetch({},'a')
+				if not value then
+					cursor:close()
+					db.cursors[n] = nil
+				end
+				
+				return valueToReturn
+			end
+		end
+	end
+	
+	return db
+end
+
+-- ######################################### --
+--  PUBLIC API
+-- ######################################### --
 
 --- sets up specific configurations for this provider.
 -- this function is executed when the engine is 
@@ -185,12 +318,15 @@ function setup(engine)
 		engine.options.port,
 	}
 
+	engine.db = dbinit(engine, engine.options.connection_table)	
+
 	return engine
 end
 
 --- stores an instace of an entity onto the database
 -- if the entity has an id, generates an update statement
 -- otherwise, generates an insert statement
+-- @param engine the active Loft engine
 function persist(engine, entity, id, obj)
 	local t = table_fill_cosmo(engine, entity)
 	obj.id = id or obj.id
@@ -223,25 +359,89 @@ function persist(engine, entity, id, obj)
 	t.data = cosmo.make_concat( data )
 	t.id = obj.id
 	
+	local query
 	if ( t.id ) then
-		return cosmo.fill(sql.UPDATE, t)
+		query = cosmo.fill(sql.UPDATE, t)
 	else
-		return cosmo.fill(sql.INSERT, t)
+		query = cosmo.fill(sql.INSERT, t)
 	end
+	
+	--TODO: proper error handling
+	--TODO: think about query logging strategies
+	local row, msg = pcall(engine.db.exec(query))
+	
+	if row then
+		data.id = row.id or data.id  
+		return true, row.id
+	else
+		return null, msg
+	end 
 end
 
-create = function (engine, entity)
+function create(engine, entity)
 	local t = table_fill_cosmo(engine, entity)
-	return cosmo.fill(sql.CREATE, t)
+	local query = cosmo.fill(sql.CREATE, t)
+	--TODO: proper error handling
+	--TODO: think about query logging strategies
+	return pcall(engine.db.exec(query))
 end
 
-delete = function (engine, entity, id, obj)	
+--- Eliminates a record  from the persistence that corresponds to the given id 
+-- @param engine the active Loft engine
+-- @param entity the schema entity identifying the type of the object to remove
+-- @param id identifier of the object to remove
+-- @param obj the object itself
+function delete(engine, entity, id, obj)	
 	local t = table_fill_cosmo(engine, entity)	
 	filters_fill_cosmo(t, { id = id })	
-	return cosmo.fill(sql.DELETE, t)
+	
+	local query = cosmo.fill(sql.DELETE, t)
+	
+	--TODO: proper error handling
+	--TODO: think about query logging strategies
+	return pcall(engine.db.exec(query))
 end
 
-search = function (engine, entity, _filters, pagination, sorting, visitorFunction)
+-- retrieve(engine, entity, id)
+--- Obtains a table from the persistence that 
+-- has the proper structure of an object of a given type
+-- @param engine the active Loft engine
+-- @param entity the schema entity identifying the type of the object to retrieve
+-- @param id identifier of the object to load
+-- @return object of the given type corresponding to Id or nil
+function retrieve(engine, entity, id)
+	local t = table_fill_cosmo(engine, entity)	
+	filters_fill_cosmo(t, { id = id })	
+
+	local query = cosmo.fill(sql.SELECT, t)
+	
+	--TODO: proper error handling
+	--TODO: think about query logging strategies
+	local iter, msg = pcall(engine.db.exec, query)
+	
+	if iter then
+		return iter()
+	else
+		return null, msg
+	end 
+end
+
+-- search(engine, options)
+--- Perform a visitor function on every record obtained in the persistence through a given set of filters
+-- @param engine the active Loft engine
+-- @param options the
+-- 			entity the schema entity identifying the type of the object to retrieve
+-- 			filters table containing a set of filter conditions
+-- 			pagination table containing a pagination parameters
+-- 			sorting table containing a sorting parameters
+-- 			visitor	(optional) function to be executed 
+-- 					every time an item is found in persistence
+--					if ommited, function will return a list with everything it found
+-- @return 			array with every return value of the resultset, after treatment by the visitor 
+function search(engine, options)
+	local entity, _filters, pagination, sorting, visitorFunction =
+ 		options.entity, options.filters, options.pagination, options.sorting, options.visitor
+ 		
 	local t = table_fill_cosmo(engine, entity)
 	
 	if ( type(pagination) == "table" ) then
@@ -267,11 +467,47 @@ search = function (engine, entity, _filters, pagination, sorting, visitorFunctio
 	
 	filters_fill_cosmo(t, _filters)
 
-	return cosmo.fill(sql.SELECT, t)
+	local query = cosmo.fill(sql.SELECT, t)
+	
+	--TODO: proper error handling
+	--TODO: think about query logging strategies
+	local iter, msg = pcall(engine.db.exec, query)
+	
+	if iter then
+		--TODO: implement resultset proxies using the list module
+		local results = {}
+		local fn = visitorFunction or passover_function
+		local row = iter() 
+		while row do
+			local o = fn(row)
+			table.insert(results, o)		
+			row = iter()
+		end
+		return results
+	else
+		return null, msg
+	end 
 end
 
-retrieve = function (engine, entity, id)
-	local t = table_fill_cosmo(engine, entity)	
-	filters_fill_cosmo(t, { id = id })	
-	return cosmo.fill(sql.SELECT, t)
+-- count(engine, options)
+--- Gets the number of results of a given set of search options 
+-- @param engine the active Loft engine
+-- @param options the
+-- 			entity the schema entity identifying the type of the object to retrieve
+-- 			filters table containing a set of filter conditions
+-- @return 			number of results to be expected with these options
+
+function count(engine, options)
+ 	local entity, _filters, pagination, sorting, visitorFunction =
+ 		options.entity, options.filters, options.pagination, options.sorting, options.visitor
+ 		
+	local t = table_fill_cosmo(engine, entity)
+	
+	filters_fill_cosmo(t, _filters)
+
+	t.columns = { 'COUNT(*)' }
+
+	local query = cosmo.fill(sql.SELECT, t)
+	
+	return pcall(engine.db.exec(query))
 end

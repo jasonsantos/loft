@@ -185,7 +185,7 @@ engine_api=function(engine)
 	--	visitor			function to be executed every time an item is found in persistence
 	--
 	-- @return 			list with all objects recovered
-	
+	-- @see api.count
 	function api.find(entity, options)
 		local options = options or entity
 		local entity = options.entity or entity
@@ -202,7 +202,7 @@ engine_api=function(engine)
 		
 		local search = provider_function(entity, 'search')
 		
-		search(entity, {entity=entity, filters=filters, order=order, visitor=visitor})
+		search{entity=entity, filters=filters, order=order, visitor=visitor}
 		
 		if list and not options.noLists then
 			results = list.create(results)
@@ -210,7 +210,20 @@ engine_api=function(engine)
 		
 		return results
 	end
-	
+
+	--- Counts the amount of items of a given entity using filters	
+	-- @param entity 	schema entity of the objects to be retrieved
+	-- @param options	table containing the criteria for the counting of objects. Similar to the filters on 'find'
+	-- @see api.find
+	function api.count(entity, options)
+		local options = options or entity
+		local entity = options.entity or entity
+		local filters = options.filters or {}
+		
+		local count = provider_function(entity, 'count')
+		
+		return count{entity=entity, filters=filters}
+	end	
 	
 	--- Saves the object to the persistence.
 	-- if object has a complex type, saves to the appropriate repository
