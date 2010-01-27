@@ -27,6 +27,19 @@ local engine_api
 --- creates a new loft engine 
 -- the engine has its own options table
 -- and its own plugins table. It is possible to add plugins
+-- @param options table of options to be used in this instance. 
+--				  All values are optional, since they can be entered 
+--				  in the default options table in the configure method.<br/>
+--
+-- 			database (string) name of the database for connecting
+--			username (string) username for the database connection
+--			password (string) password for the database connection
+--			hostname (string) hostname for the database connection
+--			port (number) port for the database connection
+-- 
+-- 			forced_deletions (boolean) always force deletions for dirty objects
+--
+-- @see configure
 function engine(opts)
 	
 	local options = prepare(opts)
@@ -91,6 +104,17 @@ plugins = setmetatable({}, {__index=plugin_api})
 -- Engine API
 -- ----------------- --
 engine_api=function(engine) 
+
+	local provider_function = function(entity, function_name)
+		local provider = entity.options and entity.options.provider or engine.provider
+		if not provider then
+			error("Persistence provider not loaded")
+		end
+		if not provider[function_name] then
+			error("Invalid persistence provider: function '" .. tostring(function_name) .. "' not found")
+		end
+		return provider[function_name]
+	end
 	
 	-- Loft Engine Public API Table
 	local api = engine or {}
@@ -130,11 +154,9 @@ engine_api=function(engine)
 			return obj
 		end
 		
-		local provider = entity.options and entity.options.provider or engine.provider or {}
-		if not provider.retrieve then
-			error('Invalid persistence provider')
-		end
-		local data = provider.retrieve and provider.retrieve(entity, id)
+		local retrieve = provider_function(entity, 'retrieve')
+		
+		local data = retrieve(entity, id)
 		
 		return data and api.new(entity, data, id)
 	end
@@ -178,11 +200,9 @@ engine_api=function(engine)
 			table.insert(results, obj)
 		end
 		
-		local provider = entity.options and entity.options.provider or engine.provider or {}
-		if not provider.search then
-			error('Invalid persistence provider')
-		end
-		provider.search(entity, {entity=entity, filters=filters, order=order, visitor=visitor})
+		local search = provider_function(entity, 'search')
+		
+		search(entity, {entity=entity, filters=filters, order=order, visitor=visitor})
 		
 		if list and not options.noLists then
 			results = list.create(results)
@@ -209,14 +229,11 @@ engine_api=function(engine)
 			error('invalid object', 2)
 		end
 		
-		local provider = entity.options and entity.options.provider or engine.provider or {}
-		if not provider.persist then
-			error('Invalid persistence provider')
-		end
+		local persist = provider_function(entity, 'persist')
 		
 		local id = proxy.get_id(obj)
 		
-		provider.persist(entity, id, data)
+		persist(entity, id, data)
 		
 		if data.id and data.id ~= id then
 			obj.id = data.id
@@ -235,7 +252,7 @@ engine_api=function(engine)
 	-- @param force boolean indicating whethe the object is to be saved even if it has been changed
 	-- @return true if object was successfully erased from persistence
 	function api.destroy(obj, force)
-		if proxy.is_dirty(obj) and not force then
+		if proxy.is_dirty(obj) and (not engine.options.forced_deletions and not force) then
 			--TODO: add an option for always forcing deletions
 			return false, "Cannot delete a changed object (unless 'force' is selected)"
 		end
@@ -246,12 +263,9 @@ engine_api=function(engine)
 			error('invalid object', 2)
 		end
 
-		local provider = entity.options and entity.options.provider or engine.provider or {}
-		if not provider.erase then
-			error('Invalid persistence provider')
-		end
+		local erase = provider_function(entity, 'erase')
 		
-		if provider.erase(entity, id) then
+		if erase(entity, id) then
 			return proxy.invalidate(obj)
 		end
 		

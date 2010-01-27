@@ -9,7 +9,7 @@ description = [[Generic Module for Database Behaviour]]
 reserved_words = {
 	'and', 'fulltext', 'table'
 }
-
+ 
 filters = {
 	
 	like = function(s) 
@@ -39,7 +39,7 @@ escapes = {
 	
 }
 
----ToDo: Checar com o jason, a nova função do escape_field_name
+---ToDo: Checar com o jason, a nova funï¿½ï¿½o do escape_field_name
 escape_field_name=function(s)
 	return reserved_words[string.lower(s)] and escapes.reserved_field_name(s) or s
 end
@@ -90,7 +90,7 @@ local table_fill_cosmo = function (engine, entity)
 	t.table_name = entity['table_name'] or entity['name']
 	
 	if ( not t.table_name ) then
-		error("Entidade não possui o atributo 'table_name' ou 'name' no schema.")
+		error("Entidade nï¿½o possui o atributo 'table_name' ou 'name' no schema.")
 	end
 	
 	local columns = {}
@@ -133,7 +133,7 @@ local filters_fill_cosmo = function (table_fill_cosmo, _filters)
 		for name, val in pairs(_filters) do
 			local col = t.__columns[name]
 			
-			if (not col) then error(name .. " não foi encontrado no schema") end
+			if (not col) then error(name .. " nï¿½o foi encontrado no schema") end
 			local name = col.name
 			local fn = col.onEscape or passoverFunction
 			
@@ -165,15 +165,39 @@ local filters_fill_cosmo = function (table_fill_cosmo, _filters)
 		t.filters_concat = cosmo.make_concat( lines )
 	end
 end
---- API
 
-persist = function (engine, entity, id, obj)
+-- API publica
+-- ----------- --
+
+--- sets up specific configurations for this provider.
+-- this function is executed when the engine is 
+-- created. It can be used primarily to create 
+-- the 'connection_string' or the 'connection_table' options from 
+-- a more human-readable set of options    
+-- @param engine the active Loft engine
+-- @return alternative loft engine to be used or null if the original engine is to be used 
+function setup(engine)
+	engine.options.connection_table = {
+		engine.options.database,
+		engine.options.username,
+		engine.options.password,
+		engine.options.hostname,
+		engine.options.port,
+	}
+
+	return engine
+end
+
+--- stores an instace of an entity onto the database
+-- if the entity has an id, generates an update statement
+-- otherwise, generates an insert statement
+function persist(engine, entity, id, obj)
 	local t = table_fill_cosmo(engine, entity)
 	obj.id = id or obj.id
 	local data = {}
 	local t_required = {}
 	
-	-- Faço checagem se todos os campos required estão no obj
+	-- Checking if every required field is present
 	for i, column in ipairs(t.__columns) do
 		
 		if ( column.required ) then
@@ -193,7 +217,7 @@ persist = function (engine, entity, id, obj)
 	end
 	
 	if ( #t_required > 0 ) then		
-		error("Os seguinte atributos precisam ser passados para o objeto (" .. table.concat(t_required, ',') .. ")")
+		error("The following fields are absent (" .. table.concat(t_required, ',') .. ")")
 	end
 	
 	t.data = cosmo.make_concat( data )
