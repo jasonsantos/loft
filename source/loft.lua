@@ -113,7 +113,7 @@ engine_api=function(engine)
 		if not provider[function_name] then
 			error("Invalid persistence provider: function '" .. tostring(function_name) .. "' not found")
 		end
-		return provider[function_name]
+		return function(...) return provider[function_name](engine, ...) end
 	end
 	
 	-- Loft Engine Public API Table

@@ -206,7 +206,7 @@ do -- testing the 'save' method on the public API
 	package.loaded['loft.providers.mock'] = {
 		setup=function(engine)
 		end,
-		persist=function(e,id,data)
+		persist=function(e,en,id,data)
 			name = data.name
 		end
 	}
@@ -224,7 +224,7 @@ do -- testing the 'save' method with id updating on proxies
 	package.loaded['loft.providers.mock'] = {
 		setup=function(engine)
 		end,
-		persist=function(e,id,data)
+		persist=function(e,en,id,data)
 			name = data.name
 			data.id = type(id)~='table' and id or inc()
 		end
@@ -246,10 +246,10 @@ do -- testing the 'destroy' method on the public API
 	package.loaded['loft.providers.mock'] = {
 		setup=function(engine)
 		end,
-		persist=function(e,id,data)
+		persist=function(e,en,id,data)
 			-- yea, persisting
 		end,
-		erase=function(e,id)
+		erase=function(e,en,id)
 			-- oh, erasing alright
 			return true
 		end
@@ -274,7 +274,7 @@ do -- testing the find method on the public API
 	package.loaded['loft.providers.mock'] = {
 		setup=function(engine)
 		end,
-		search=function(e,options)
+		search=function(e,en,options)
 			local fn = options.visitor
 			table.foreach(result, fn)
 		end
@@ -293,3 +293,4 @@ do -- testing the find method on the public API
 		idx = idx + 1
 	end
 end
+
