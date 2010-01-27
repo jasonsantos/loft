@@ -71,7 +71,7 @@ List = {
 			return List[idx]
 		end
 		
-		if listmetadata[l][idx] then
+		if idx and listmetadata[l] and listmetadata[l][idx] then
 			return listmetadata[l][idx]
 		end
 		
@@ -91,7 +91,6 @@ List = {
 	end,
 	
 	__len = function(l)
-	print'123123123123123'
 		local o = listmetadata[l]
 		return o.count
 	end,
@@ -166,8 +165,9 @@ local passoverFunction = function(...) return ... end
 -- this way, lists are clean collections of items
 
 function create(options)
-	local list = setmetatable({}, List)
-	list.items = options.items or {unpack(options)}
+	local list = setmetatable(options, List)
+	local items = {unpack(options)}
+	list.items = options.items or items
 
 	local o = {}
 	o.position = options.position or 0
