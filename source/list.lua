@@ -90,6 +90,12 @@ List = {
 		return l:next()
 	end,
 	
+	__len = function(l)
+	print'123123123123123'
+		local o = listmetadata[l]
+		return o.count
+	end,
+	
 	moveTo=function(l, idx)
 		local o = listmetadata[l]
 		if not o.loaded or idx~=o.position then
