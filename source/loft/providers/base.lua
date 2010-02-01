@@ -7,7 +7,7 @@ require'util'
 ----------------------------------------------
 -- 
 
-module("base", package.seeall)
+module(..., package.seeall)
 
 description = [[Generic Module for Database Behaviour]]
 
@@ -58,10 +58,27 @@ description = [[Generic Module for Database Behaviour]]
 -- ######################################### --
 --  this provider default options
 
+local indexed_table_mt = {
+	__newindex=function(t,k,v)
+		if not tonumber(k) then
+			table.insert(t, k)
+		end
+	end,
+	__call=function(t,items)
+		for _,v in ipairs(items) do
+			t[v]=true
+		end
+	end
+}
+
 database_type = 'base'
 
-reserved_words = {
-	'and', 'fulltext', 'table'
+reserved_words = setmetatable({}, indexed_table_mt)
+ 
+reserved_words {
+	'and',
+	'fulltext', 
+	'table'
 }
  
 filters = {
@@ -117,9 +134,11 @@ field_types = {
 
 sql = {
 	
-	CREATE = [==[CREATE TABLE IF NOT EXISTS $table_name ( 
-			$columns{", "}[=[$escape_field_name{$column_name} $type$if{$size}[[($size)$if{$primary}[[ PRIMARY KEY]]]]$if{$required}[[ NOT NULL]]$if{$description}[[ COMMENT  $string_literal{$description}]]$if{$autoincrement}[[ AUTO_INCREMENT]]$sep
-			]=])]==],
+	CREATE = [==[
+CREATE TABLE IF NOT EXISTS $table_name ( 
+  $columns{", "}[=[$escape_field_name{$column_name} $type$if{$size}[[($size)$if{$primary}[[ PRIMARY KEY]]]]$if{$required}[[ NOT NULL]]$if{$description}[[ COMMENT  $string_literal{$description}]]$if{$autoincrement}[[ AUTO_INCREMENT]]$sep
+]=])
+]==],
 	
 	INSERT = [[INSERT INTO $table_name ($data{", "}[=[$escape_field_name{$column_name}$sep]=]) VALUES ($data{", "}[=[$value$sep ]=]); SELECT LAST_INSERT_ID() as id]],
 	
@@ -149,7 +168,7 @@ local table_fill_cosmo = function (engine, entity)
 	t.table_name = entity['table_name'] or entity['name']
 	
 	if ( not t.table_name ) then
-		error("Entidade n�o possui o atributo 'table_name' ou 'name' no schema.")
+		error("Entity must have a  `name` or `table_name`.")
 	end
 	
 	local columns = {}
@@ -158,12 +177,16 @@ local table_fill_cosmo = function (engine, entity)
 		local field_type = field_types[field.type] or {}
 		local column = table.merge(field_type, field)
 		
-		column.name = field_name
+		column.name = field.column_name
+		column.alias = field_name
+		column.order = field.order or 999
 		column.type = field_type.type
 		columns[field_name] = column 
 		
 		table.insert(columns, columns[field_name])
 	end
+	
+	table.sort(columns, function(f1,f2) return f1.order < f2.order end)
 	
 	t.__columns = columns
 	t.columns = cosmo.make_concat( columns )
@@ -233,7 +256,7 @@ end
 database_engine = {}
 
 --- Initializes the database engine and its closure-controled state
-function database_engine.dbinit(engine, connection_params)
+function database_engine.init(engine, connection_params)
 	local luasql
 	local db = database_engine
 	local connection
@@ -318,7 +341,7 @@ function setup(engine)
 		engine.options.port,
 	}
 
-	engine.db = dbinit(engine, engine.options.connection_table)	
+	engine.db = database_engine.init(engine, engine.options.connection_table)	
 
 	return engine
 end
@@ -336,17 +359,17 @@ function persist(engine, entity, id, obj)
 	-- Checking if every required field is present
 	for i, column in ipairs(t.__columns) do
 		
-		if ( column.required ) then
-			if ( not obj[ column.name ] and column.name ~= 'id') then
-				table.insert( t_required, column.name )
+		if ( column.required ) then 
+			if ( not obj[ column.alias ] and column.alias ~= 'id') then
+				table.insert( t_required, column.alias )
 			end
 		end
 		
-		if ( obj[ column.name ] ) then
+		if ( obj[ column.alias ] ) then
 			local fn = column.onEscape or passoverFunction
 			table.insert(data, {				
 				column_name = column.name,
-				value = fn( obj[ column.name ] )
+				value = fn( obj[ column.alias ] )
 			})
 		end
 		
@@ -368,13 +391,13 @@ function persist(engine, entity, id, obj)
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local row, msg = pcall(engine.db.exec(query))
+	local row, o = pcall(engine.db.exec(query))
 	
 	if row then
-		data.id = row.id or data.id  
-		return true, row.id
+		data.id = o.id or data.id  
+		return true, o.id
 	else
-		return null, msg
+		return null, o
 	end 
 end
 
@@ -417,12 +440,12 @@ function retrieve(engine, entity, id)
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local iter, msg = pcall(engine.db.exec, query)
+	local ok, iter = pcall(engine.db.exec, query)
 	
 	if iter then
 		return iter()
 	else
-		return null, msg
+		return null, iter
 	end 
 end
 
@@ -471,7 +494,7 @@ function search(engine, options)
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local iter, msg = pcall(engine.db.exec, query)
+	local ok, iter = pcall(engine.db.exec, query)
 	
 	if iter then
 		--TODO: implement resultset proxies using the list module
@@ -485,7 +508,7 @@ function search(engine, options)
 		end
 		return results
 	else
-		return null, msg
+		return null, iter
 	end 
 end
 
@@ -509,5 +532,7 @@ function count(engine, options)
 
 	local query = cosmo.fill(sql.SELECT, t)
 	
-	return pcall(engine.db.exec(query))
+	local ok,num = pcall(engine.db.exec(query))
+	
+	return ok and num or null, num
 end
