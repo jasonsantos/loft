@@ -58,21 +58,23 @@ local queries = {}
 
 local function short_query(sql)
 	sql = string.gsub(sql, "%s+", " ") 
-	sql = string.gsub(sql, "^%s*", " ") 
-	sql = string.gsub(sql, "%s*$", " ")
+	sql = string.gsub(sql, "^%s*", "") 
+	sql = string.gsub(sql, "%s*$", "")
 	return sql 
 end
 
 local function assert_last_query(sql)
-	assert(short_query(sql)==short_query(queries[#queries]))
+	if short_query(sql)~=short_query(queries[#queries]) then
+		error("assertion failed", 2)
+	end
 end
 
 local engine = {
 	db = {
 		exec = function(sql)
---		print'----------------------------'
---		print(sql)
---		print'----------------------------'
+		print'----------------------------'
+		print(sql)
+		print'----------------------------'
 			table.insert(queries, sql)
 			return function()
 				return {id=1, fulltext="test"}
@@ -99,26 +101,51 @@ CREATE TABLE IF NOT EXISTS T_Info (
 
 ]]
 
-provider.persist(engine, default.entities.info, nil, {
+local obj = {
 	summary = "Resumo",
 	fulltext = "Texto",
 	authorName = "autor"
-}) 
+}
+
+provider.persist(engine, default.entities.info, nil, obj) 
 
 assert_last_query[[
 INSERT INTO T_Info (f_summary, f_fulltext, f_authorName) VALUES ('Resumo' , 'Texto' , 'autor' );  
 SELECT LAST_INSERT_ID() as id]]
 
-os.exit()
+assert(obj.id==1)
 
-print( provider.persist(engine, default.entities.info, 1, {
+provider.persist(engine, default.entities.info, 1, {
 	summary = "Resumo",
 	id = 1,
 	fullText = "Texto",
 	authorName = "autor"
-}) )
+})
 
-print( provider.retrieve(engine, default.entities.info, 1) )
+assert_last_query[[
+UPDATE T_Info SET f_infoid=1, f_summary='Resumo', f_authorName='autor' WHERE id = 1
+]]
+
+
+provider.retrieve(engine, default.entities.info, 1)
+
+assert_last_query[[
+SELECT 
+	f_infoid as id, 
+	f_title as title, 
+	f_summary as summary, 
+	f_fulltext as `fulltext`, 
+	f_section as section, 
+	f_authorName as authorName, 
+	f_authorMail as authorMail, 
+	f_actor as actor, 
+	f_creatorActor as creatorActor, 
+	f_state as state 
+	FROM T_Info 
+	WHERE (f_infoid = 1) 
+]]
+
+os.exit()
 
 print( provider.delete(engine, default.entities.info, 1) )
 

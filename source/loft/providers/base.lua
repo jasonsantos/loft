@@ -63,6 +63,7 @@ local indexed_table_mt = {
 		if not tonumber(k) then
 			table.insert(t, k)
 		end
+		rawset(t,k,v)
 	end,
 	__call=function(t,items)
 		for _,v in ipairs(items) do
@@ -111,8 +112,12 @@ escapes = {
 }
 
 ---ToDo: Checar com o jason, a nova fun��o do escape_field_name
+local function contains_special_chars(s)
+	return string.find(s, '([^a-zA-Z0-9_])')~=nil
+end
+
 escape_field_name=function(s)
-	return reserved_words[string.lower(s)] and escapes.reserved_field_name(s) or s
+	return (reserved_words[string.lower(s)] or contains_special_chars(s)) and escapes.reserved_field_name(s) or s
 end
 
 string_literal=function(s) 
@@ -144,7 +149,7 @@ CREATE TABLE IF NOT EXISTS $table_name (
 	
 	UPDATE = [[UPDATE $table_name SET $data{", "}[=[$escape_field_name{$column_name}=$value$sep]=] WHERE id = $id]],
 	
-	SELECT = [==[SELECT $columns{", "}[[$column_name as $name$sep]] FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[[ LIMIT $pagination|limit OFFSET $pagination|offset]]]==],
+	SELECT = [==[SELECT $columns{", "}[[$escape_field_name{$column_name} as $escape_field_name{$alias}$sep]] FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[[ LIMIT $pagination|limit OFFSET $pagination|offset]]]==],
 	
 	DELETE = [==[DELETE FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==]
 	
@@ -394,7 +399,8 @@ function persist(engine, entity, id, obj)
 	local row, o = pcall(engine.db.exec(query))
 	
 	if row then
-		data.id = o.id or data.id  
+		--TODO: refresh object with other eventual database-generated values 
+		obj.id = o.id or obj.id  
 		return true, o.id
 	else
 		return null, o
