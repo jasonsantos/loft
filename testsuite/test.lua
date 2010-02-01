@@ -1,4 +1,4 @@
-package.path = package.path .. ";../source/?.lua;/home/alessandro/workspace/br.com.fabricadigital.publique.database.loony/lib/?.lua"
+package.path = package.path .. ";../source/?.lua"
 
 local schema = require'schema'
 
