@@ -52,8 +52,8 @@ function engine(opts)
 	-- provider initialization. 
 	-- A provider will likely want to store connection data on the engine table. 
 	-- This gives it the oportunity for preparing the engine.
-	engine.provider = provider.setup(engine) or provider
-
+	engine.provider = provider
+	engine.provider_setup = provider.setup(engine)
 	-- create publicly avaliable plugin proxies
 	-- each with a brand new configuration table, just for this provider
 	engine.plugins = {}
@@ -161,6 +161,12 @@ engine_api=function(engine)
 		return data and api.new(entity, data, id)
 	end
 	
+	
+	function api.create(entity)
+		local create = provider_function(entity, 'create')
+		create(entity, id)
+	end
+	
 	--- Finds a list of objects matching a given set of filters.
 	-- foreach given object matching the criteria, if it is already 
 	-- in memory cache, it is obtained directly from there
@@ -194,7 +200,7 @@ engine_api=function(engine)
 		
 		local results = {}
 		
-		local visitor = options.visitor or function(n, data)
+		local visitor = options.visitor or function(data)
 			local id = data.id
 			local obj = api.new(entity, data, id)
 			table.insert(results, obj)
@@ -245,6 +251,10 @@ engine_api=function(engine)
 		local persist = provider_function(entity, 'persist')
 		
 		local id = proxy.get_id(obj)
+				
+		if not (id and tonumber(id)) then
+			id = nil
+		end
 		
 		persist(entity, id, data)
 		
@@ -276,9 +286,9 @@ engine_api=function(engine)
 			error('invalid object', 2)
 		end
 
-		local erase = provider_function(entity, 'erase')
+		local delete = provider_function(entity, 'delete')
 		
-		if erase(entity, id) then
+		if delete(entity, id) then
 			return proxy.invalidate(obj)
 		end
 		
