@@ -149,7 +149,10 @@ CREATE TABLE IF NOT EXISTS $table_name (
 	
 	UPDATE = [[UPDATE $table_name SET $data{", "}[=[$escape_field_name{$column_name}=$value$sep]=] WHERE id = $id]],
 	
-	SELECT = [==[SELECT $columns{", "}[[$escape_field_name{$column_name} as $escape_field_name{$alias}$sep]] FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[[ LIMIT $pagination|limit OFFSET $pagination|offset]]]==],
+	SELECT = [==[SELECT 
+		$columns{", "}[[$escape_field_name{$column_name} as $escape_field_name{$alias}$sep
+		]]FROM $table_name
+		$if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[[ LIMIT $pagination|limit OFFSET $pagination|offset]]]==],
 	
 	DELETE = [==[DELETE FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==]
 	
@@ -190,7 +193,7 @@ local table_fill_cosmo = function (engine, entity)
 		
 		table.insert(columns, columns[field_name])
 	end
-	
+	table.sort(columns, function(f1,f2) return f1.name < f2.name end)
 	table.sort(columns, function(f1,f2) return f1.order < f2.order end)
 	
 	t.__columns = columns
@@ -470,7 +473,7 @@ end
 function search(engine, options)
 	local entity, _filters, pagination, sorting, visitorFunction =
  		(options.entity or options[1]), options.filters, options.pagination, options.sorting, options.visitor
- 		
+	
 	local t = table_fill_cosmo(engine, entity)
 	
 	if ( type(pagination) == "table" ) then

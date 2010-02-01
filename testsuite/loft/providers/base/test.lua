@@ -90,15 +90,15 @@ provider.create(engine, default.entities.info)
 
 assert_last_query[[
 CREATE TABLE IF NOT EXISTS T_Info ( 
-  f_infoid BIGINT(8) PRIMARY KEY NOT NULL AUTO_INCREMENT ,
-  f_title VARCHAR(100) ,
-  f_summary LONGTEXT ,
-  f_fulltext LONGTEXT ,
-  f_section VARCHAR(255) ,
-  f_authorName VARCHAR(255) ,
-  f_authorMail VARCHAR(255) ,
-  f_actor VARCHAR(255) ,
-  f_creatorActor VARCHAR(255) ,
+  f_infoid BIGINT(8) PRIMARY KEY NOT NULL AUTO_INCREMENT,
+  f_title VARCHAR(100),
+  f_summary LONGTEXT,
+  f_fulltext LONGTEXT,
+  f_section VARCHAR(255),
+  f_authorName VARCHAR(255),
+  f_authorMail VARCHAR(255),
+  f_actor VARCHAR(255),
+  f_creatorActor VARCHAR(255),
   f_state INT(10) COMMENT  'Estado da info, pode assumir um de ''5'' valores'
 )
 
@@ -113,8 +113,7 @@ local obj = {
 provider.persist(engine, default.entities.info, nil, obj) 
 
 assert_last_query[[
-INSERT INTO T_Info (f_summary, f_fulltext, f_authorName) VALUES ('Resumo' , 'Texto' , 'autor' );  
-SELECT LAST_INSERT_ID() as id]]
+INSERT INTO T_Info (f_summary, f_fulltext, f_authorName) VALUES ('Resumo', 'Texto', 'autor' ); SELECT LAST_INSERT_ID() as id]]
 
 assert(obj.id==1)
 
@@ -160,8 +159,10 @@ DELETE FROM T_Info WHERE (f_infoid = 1)
 
 provider.search(engine, {
 	default.entities.info, 
-	id = 1,
-	state = {1, 2, 3, 4},
+	filters = {
+		id = 1,
+		state = {1, 2, 3, 4}
+	}
 	}) 
 
 assert_last_query[[
