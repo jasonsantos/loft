@@ -1,4 +1,4 @@
-package.path = package.path .. ";;../../source/?.lua"
+package.path = package.path .. ";;../../../../source/?.lua"
 
 local schema = require'schema'
 
@@ -11,21 +11,22 @@ package.preload['luasql.base']= function()
 end
 
 local default = schema.expand(function ()
+	column_prefix = "f_"
+
 	info = entity {
-		name = 'info',
 		table_name= "T_Info",
 		fields = { 
-			id = { order = 1, column_name = "F_InfoID", type = "key", required=true},
-			title = { type = "text", size = 100, maxlength=250 },
-			summary=long_text(),
-			fullText=long_text(),							
+			id = { order = 1, column_name = "f_infoid", type = "key", required=true},
+			title = { order=2, type = "text", size = 100, maxlength=250 },
+			summary=long_text{order=3},
+			fulltext=long_text(),							
 			section = text(),
 			authorName = text(),
 			authorMail = text(),
 			actor = text(),
 			creatorActor = text(),
-			state = {
-				type = 'integer', size=10, description="Estado da info, pode assumir um de '5' valores",
+			state = integer{
+				size=10, description="Estado da info, pode assumir um de '5' valores",
 				handlers = {
 	                get = function (f, v) record.gettings = record.gettings + 1 return v end,
 	                set = function (f, v) record.settings = record.settings + 1 return v end,
@@ -49,26 +50,79 @@ local default = schema.expand(function ()
 	
 end)
 
-print( create(nil, default.entities.info) )
+local provider = require"loft.providers.base"
 
-print( persist(nil, default.entities.info, nil, {
+-- query testing apparatus
+
+local queries = {}
+
+local function short_query(sql)
+	sql = string.gsub(sql, "%s+", " ") 
+	sql = string.gsub(sql, "^%s*", " ") 
+	sql = string.gsub(sql, "%s*$", " ")
+	return sql 
+end
+
+local function assert_last_query(sql)
+	assert(short_query(sql)==short_query(queries[#queries]))
+end
+
+local engine = {
+	db = {
+		exec = function(sql)
+--		print'----------------------------'
+--		print(sql)
+--		print'----------------------------'
+			table.insert(queries, sql)
+			return function()
+				return {id=1, fulltext="test"}
+			end 
+		end
+	}
+} 
+
+provider.create(engine, default.entities.info)
+
+assert_last_query[[
+CREATE TABLE IF NOT EXISTS T_Info ( 
+  f_infoid BIGINT(8) PRIMARY KEY NOT NULL AUTO_INCREMENT ,
+  f_title VARCHAR(100) ,
+  f_summary LONGTEXT ,
+  f_fulltext LONGTEXT ,
+  f_section VARCHAR(255) ,
+  f_authorName VARCHAR(255) ,
+  f_authorMail VARCHAR(255) ,
+  f_actor VARCHAR(255) ,
+  f_creatorActor VARCHAR(255) ,
+  f_state INT(10) COMMENT  'Estado da info, pode assumir um de ''5'' valores'
+)
+
+]]
+
+provider.persist(engine, default.entities.info, nil, {
 	summary = "Resumo",
-	fullText = "Texto",
+	fulltext = "Texto",
 	authorName = "autor"
-}) )
+}) 
 
-print( persist(nil, default.entities.info, 1, {
+assert_last_query[[
+INSERT INTO T_Info (f_summary, f_fulltext, f_authorName) VALUES ('Resumo' , 'Texto' , 'autor' );  
+SELECT LAST_INSERT_ID() as id]]
+
+os.exit()
+
+print( provider.persist(engine, default.entities.info, 1, {
 	summary = "Resumo",
 	id = 1,
 	fullText = "Texto",
 	authorName = "autor"
 }) )
 
-print( retrieve(nil, default.entities.info, 1) )
+print( provider.retrieve(engine, default.entities.info, 1) )
 
-print( delete(nil, default.entities.info, 1) )
+print( provider.delete(engine, default.entities.info, 1) )
 
-print( search(nil, default.entities.info, { 
+print( provider.search(engine, default.entities.info, { 
 	title = 'aaaa',
 	authorName = { like = "b"},
 	id = 1,
@@ -77,13 +131,13 @@ print( search(nil, default.entities.info, {
 	}) 
 )
 
-print( search(nil, default.entities.info, { 
+print( provider.search(engine, default.entities.info, { 
 	
 	}) 
 )
 
-print( search(nil, default.entities.info, nil))
+print( provider.search(engine, default.entities.info, nil))
 
-print( search(nil, default.entities.info, nil, { limit = 1, offset = 1 }) )
+print( provider.search(engine, default.entities.info, nil, { limit = 1, offset = 1 }) )
 
-print( search(nil, default.entities.info, nil, nil, {"title+", "-id", "+fulltext+"}) )
+print( provider.search(engine, default.entities.info, nil, nil, {"title+", "-id", "+fulltext+"}) )
