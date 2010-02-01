@@ -141,16 +141,16 @@ sql = {
 	
 	CREATE = [==[
 CREATE TABLE IF NOT EXISTS $table_name ( 
-  $columns{", "}[=[$escape_field_name{$column_name} $type$if{$size}[[($size)$if{$primary}[[ PRIMARY KEY]]]]$if{$required}[[ NOT NULL]]$if{$description}[[ COMMENT  $string_literal{$description}]]$if{$autoincrement}[[ AUTO_INCREMENT]]$sep
+  $columns{", "}[=[$escape_field_name{$column_name} $type$if{$size}[[($size)]]$if{$primary}[[ PRIMARY KEY]]$if{$required}[[ NOT NULL]]$if{$description}[[ COMMENT  $string_literal{$description}]]$if{$autoincrement}[[ AUTO_INCREMENT]]$sep
 ]=])
 ]==],
 	
 	INSERT = [[INSERT INTO $table_name ($data{", "}[=[$escape_field_name{$column_name}$sep]=]) VALUES ($data{", "}[=[$value$sep ]=]); SELECT LAST_INSERT_ID() as id]],
 	
-	UPDATE = [[UPDATE $table_name SET $data{", "}[=[$escape_field_name{$column_name}=$value$sep]=] WHERE id = $id]],
+	UPDATE = [==[UPDATE $table_name SET $data{", "}[=[$escape_field_name{$column_name}=$value$sep]=] $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==],
 	
 	SELECT = [==[SELECT 
-		$columns{", "}[[$escape_field_name{$column_name} as $escape_field_name{$alias}$sep
+		$columns{", "}[[ $if{$column_name}[[$escape_field_name{$column_name}]][[$func]] as $escape_field_name{$alias}$sep
 		]]FROM $table_name
 		$if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[[ LIMIT $pagination|limit OFFSET $pagination|offset]]]==],
 	
@@ -226,7 +226,7 @@ local filters_fill_cosmo = function (table_fill_cosmo, _filters)
 			if (not col) then error(name .. " not present in entity") end
 			local name = col.name
 			local fn = col.onEscape or passoverFunction
-			
+						
 			if type(val)=='string' or type(val)=='number' then
 				table.insert(lines, col.column_name .. ' = ' .. fn(val))
 			elseif type(val)=='table' then
@@ -265,15 +265,16 @@ database_engine = {}
 
 --- Initializes the database engine and its closure-controled state
 function database_engine.init(engine, connection_params)
-	local luasql
+	local luasql, luasql_connect
 	local db = database_engine
+	local database_type = engine.options.database_type
 	local connection
 	local cursors = {}
 	
 	db.open_connection = function()
-		local luasql = luasql or require("luasql." .. database_type)
-		local engine = engine or luasql()
-		local connection = connection or engine:connect(unpack(connection_params))
+		local luasql, err = luasql or require("luasql." .. database_type)
+		local luasql_connect, err = luasql_connect or luasql[database_type]()
+		local connection, err = luasql_connect:connect(unpack(connection_params))
 		
 		return connection
 	end  
@@ -295,34 +296,33 @@ function database_engine.init(engine, connection_params)
 		--TODO: think about connection closing strategies
 		
 		local params = {...}
-		local connection = connection or engine.open_connection()
+		local connection = connection or db.open_connection()
 		
 		if not connection then
 			error('Connection to the database could not be established')
 		end
 		
 		local cursor = assert(connection:execute(string.format(sql, ...)))
+		
 		if type(cursor)~='number' then
 			local n = #cursors+1
 			cursors[n]=cursor
 			
-			local value = cursor:fetch({},'a')
-			if not value then
-				cursor:close()
-				db.cursors[n] = nil
-			end
-
 			-- returns an iterator function
 			return function()
-				local valueToReturn = value
-				value = cursor:fetch({},'a')
+				
+				local value = cursor:fetch({},'a')
 				if not value then
 					cursor:close()
-					db.cursors[n] = nil
+					cursors[n] = nil
 				end
+				
+				local valueToReturn = value
 				
 				return valueToReturn
 			end
+		else
+			return cursor, connection
 		end
 	end
 	
@@ -339,7 +339,7 @@ end
 -- the 'connection_string' or the 'connection_table' options from 
 -- a more human-readable set of options    
 -- @param engine the active Loft engine
--- @return alternative loft engine to be used or null if the original engine is to be used 
+-- @return alternative loft engine to be used or nil if the original engine is to be used 
 function setup(engine)
 	engine.options.connection_table = {
 		engine.options.database,
@@ -363,6 +363,7 @@ function persist(engine, entity, id, obj)
 	obj.id = id or obj.id
 	local data = {}
 	local t_required = {}
+	local isUpdate = false
 	
 	-- Checking if every required field is present
 	for i, column in ipairs(t.__columns) do
@@ -392,21 +393,31 @@ function persist(engine, entity, id, obj)
 	
 	local query
 	if ( t.id ) then
+		filters_fill_cosmo(t, { id = id })	
 		query = cosmo.fill(sql.UPDATE, t)
+		isUpdate = true
 	else
 		query = cosmo.fill(sql.INSERT, t)
 	end
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local row, o = pcall(engine.db.exec(query))
+	local row, object_or_cursor, connection = pcall(engine.db.exec, query)
+	
+	if (isUpdate == true) then
+		return row, object_or_cursor
+	end
 	
 	if row then
-		--TODO: refresh object with other eventual database-generated values 
-		obj.id = o.id or obj.id  
-		return true, o.id
+		if ( type(object_or_cursor) ~= "number" ) then
+			--TODO: refresh object with other eventual database-generated values 
+			obj.id = object_or_cursor.id or obj.id 
+		else
+			obj.id = connection:getlastautoid() 
+		end
+		return true, obj.id
 	else
-		return null, o
+		return nil, object_or_cursor
 	end 
 end
 
@@ -415,7 +426,8 @@ function create(engine, entity)
 	local query = cosmo.fill(sql.CREATE, t)
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	return pcall(engine.db.exec(query))
+	
+	return pcall(engine.db.exec, query)
 end
 
 --- Eliminates a record  from the persistence that corresponds to the given id 
@@ -431,7 +443,7 @@ function delete(engine, entity, id, obj)
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	return pcall(engine.db.exec(query))
+	return pcall(engine.db.exec, query)
 end
 
 -- retrieve(engine, entity, id)
@@ -454,7 +466,7 @@ function retrieve(engine, entity, id)
 	if iter then
 		return iter()
 	else
-		return null, iter
+		return nil, iter
 	end 
 end
 
@@ -505,6 +517,10 @@ function search(engine, options)
 	--TODO: think about query logging strategies
 	local ok, iter = pcall(engine.db.exec, query)
 	
+	if (not ok) then
+		error(iter)
+	end
+	
 	if iter then
 		--TODO: implement resultset proxies using the list module
 		local results = {}
@@ -512,12 +528,12 @@ function search(engine, options)
 		local row = iter() 
 		while row do
 			local o = fn(row)
-			table.insert(results, o)		
+			table.insert(results, o)
 			row = iter()
 		end
 		return results
 	else
-		return null, iter
+		return nil, iter
 	end 
 end
 
@@ -536,12 +552,19 @@ function count(engine, options)
 	local t = table_fill_cosmo(engine, entity)
 	
 	filters_fill_cosmo(t, _filters)
-
-	t.columns = { 'COUNT(*)' }
-
+	t.columns = cosmo.make_concat( { { func = 'COUNT(*)', alias = 'count' }} )
 	local query = cosmo.fill(sql.SELECT, t)
 	
-	local ok,num = pcall(engine.db.exec(query))
+	local ok, iter_num = pcall(engine.db.exec, query)
 	
-	return ok and num or null, num
+	if ok then
+		--TODO: implement resultset proxies using the list module
+		local results = {}
+		local row = iter_num() 
+		if row then
+			return row.count
+		end
+	end
+	
+	return nil
 end
