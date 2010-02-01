@@ -75,9 +75,9 @@ local engine = {
 			local result = {
 				{id=1, summary="test summary content", fulltext="test fulltext content"}
 			}
-		print'----------------------------'
-		print(sql)
-		print'----------------------------'
+		--print'----------------------------'
+		--print(sql)
+		--print'----------------------------'
 			table.insert(queries, sql)
 			return function()
 				return table.remove(result, #result)
@@ -178,7 +178,7 @@ SELECT
 	f_creatorActor as creatorActor, 
 	f_state as state 
 	FROM T_Info 
-	WHERE (f_infoid = 1 AND f_state in (1, 2, 3, 4)) 
+	WHERE (f_infoid = 1 AND f_state IN (1, 2, 3, 4)) 
 ]]
 
 
