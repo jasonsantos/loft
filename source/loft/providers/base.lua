@@ -220,7 +220,7 @@ local filters_fill_cosmo = function (table_fill_cosmo, _filters)
 		for name, val in pairs(_filters) do
 			local col = t.__columns[name]
 			
-			if (not col) then error(name .. " n�o foi encontrado no schema") end
+			if (not col) then error(name .. " not present in entity") end
 			local name = col.name
 			local fn = col.onEscape or passoverFunction
 			
@@ -469,7 +469,7 @@ end
 -- @return 			array with every return value of the resultset, after treatment by the visitor 
 function search(engine, options)
 	local entity, _filters, pagination, sorting, visitorFunction =
- 		options.entity, options.filters, options.pagination, options.sorting, options.visitor
+ 		(options.entity or options[1]), options.filters, options.pagination, options.sorting, options.visitor
  		
 	local t = table_fill_cosmo(engine, entity)
 	

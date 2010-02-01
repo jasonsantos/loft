@@ -72,12 +72,15 @@ end
 local engine = {
 	db = {
 		exec = function(sql)
+			local result = {
+				{id=1, summary="test summary content", fulltext="test fulltext content"}
+			}
 		print'----------------------------'
 		print(sql)
 		print'----------------------------'
 			table.insert(queries, sql)
 			return function()
-				return {id=1, fulltext="test"}
+				return table.remove(result, #result)
 			end 
 		end
 	}
@@ -127,7 +130,7 @@ UPDATE T_Info SET f_infoid=1, f_summary='Resumo', f_authorName='autor' WHERE id 
 ]]
 
 
-provider.retrieve(engine, default.entities.info, 1)
+local o = provider.retrieve(engine, default.entities.info, 1)
 
 assert_last_query[[
 SELECT 
@@ -145,18 +148,49 @@ SELECT
 	WHERE (f_infoid = 1) 
 ]]
 
+assert(o.id == 1)
+assert(o.summary == 'test summary content')
+assert(o.fulltext == 'test fulltext content')
+
+provider.delete(engine, default.entities.info, 1)
+
+assert_last_query[[
+DELETE FROM T_Info WHERE (f_infoid = 1)
+]]
+
+provider.search(engine, {
+	default.entities.info, 
+	id = 1,
+	state = {1, 2, 3, 4},
+	}) 
+
+assert_last_query[[
+SELECT 
+	f_infoid as id, 
+	f_title as title, 
+	f_summary as summary, 
+	f_fulltext as `fulltext`, 
+	f_section as section, 
+	f_authorName as authorName, 
+	f_authorMail as authorMail, 
+	f_actor as actor, 
+	f_creatorActor as creatorActor, 
+	f_state as state 
+	FROM T_Info 
+	WHERE (f_infoid = 1 AND f_state in (1, 2, 3, 4)) 
+]]
+
+
 os.exit()
 
-print( provider.delete(engine, default.entities.info, 1) )
-
-print( provider.search(engine, default.entities.info, { 
+provider.search(engine, {
+	default.entities.info, 
 	title = 'aaaa',
 	authorName = { like = "b"},
 	id = 1,
 	state = {1, 2, 3, 4},
 	summary = { gt = "a" }
 	}) 
-)
 
 print( provider.search(engine, default.entities.info, { 
 	
