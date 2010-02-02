@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS $table_name (
 	SELECT = [==[SELECT 
 		$columns{", "}[[ $if{$column_name}[[$escape_field_name{$column_name}]][[$func]] as $escape_field_name{$alias}$sep
 		]]FROM $table_name
-		$if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[[ LIMIT $pagination|limit OFFSET $pagination|offset]]]==],
+		$if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[=[$if{$pagination|limit}[[ LIMIT $pagination|limit ]] $if{$pagination|offset}[[OFFSET $pagination|offset]]]=]]==],
 	
 	DELETE = [==[DELETE FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==]
 	
@@ -316,10 +316,8 @@ function database_engine.init(engine, connection_params)
 					cursor:close()
 					cursors[n] = nil
 				end
-				
-				local valueToReturn = value
-				
-				return valueToReturn
+								
+				return value
 			end
 		else
 			return cursor, connection
@@ -488,7 +486,7 @@ function search(engine, options)
 	
 	local t = table_fill_cosmo(engine, entity)
 	
-	if ( type(pagination) == "table" ) then
+	if ( type(pagination) == "table" and table.count(pagination) > 0) then
 		t.pagination = pagination	
 	end
 	
@@ -562,6 +560,8 @@ function count(engine, options)
 		local results = {}
 		local row = iter_num() 
 		if row then
+			-- Todo. Better code the cursor function!
+			iter_num()  --closed the cursor!
 			return row.count
 		end
 	end
