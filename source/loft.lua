@@ -178,7 +178,10 @@ engine_api=function(engine)
 	--  entity			alternate place to put the entity param. It can alson be put in 
 	--				    position [1] of the options table.
 	-- 
-	--  order			array containing a list of fields to be used in the sorting clauses 
+	--  sorting			array containing a list of fields to be used in the sorting clauses 
+	--
+	-- pagination		TODO*********
+	--
 	-- 
 	--  filter		 	table containing a set of filter conditions
 	--					filters are tables with keys representing fieldnames
@@ -195,8 +198,9 @@ engine_api=function(engine)
 	function api.find(entity, options)
 		local options = options or entity
 		local entity = options.entity or entity
-		local order = options.order or {}
+		local sorting = options.sorting or {}
 		local filters = options.filters or {}
+		local pagination = options.pagination or {}
 		
 		local results = {}
 		
@@ -208,7 +212,7 @@ engine_api=function(engine)
 		
 		local search = provider_function(entity, 'search')
 		
-		search{entity=entity, filters=filters, order=order, visitor=visitor}
+		search{entity=entity, filters=filters, sorting=sorting, pagination=pagination, visitor=visitor}
 		
 		if list and not options.noLists then
 			results = list.create(results)
@@ -292,7 +296,7 @@ engine_api=function(engine)
 			return proxy.invalidate(obj)
 		end
 		
-		return false
+		return true
 	end
 	
 	--- Initialize a schema to be used with Loft
