@@ -257,6 +257,17 @@ local filters_fill_cosmo = function (table_fill_cosmo, _filters)
 end
 
 -- ######################################### --
+--  EVENT HANDLER
+-- ######################################### --
+
+local event = {
+	notify = function(hook, action, options)
+		-- TODO
+	end
+}
+
+
+-- ######################################### --
 --  DATABASE ENGINE
 -- ######################################### --
 
