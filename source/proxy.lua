@@ -97,8 +97,9 @@ end
 --Generic Getters and Setters
 local function get(proxy, key)
 	local o = get_object(proxy)
+	local methods = getmetatable(proxy).__methods or {}
 	--TODO: add hooks
-	return o[key]
+	return methods[key] or o[key]
 end
 
 local function set(proxy, key, value)
@@ -115,7 +116,7 @@ local function set(proxy, key, value)
 	o[key]=value
 end
 
-function create(entity, existing_id, obj)
+function create(entity, existing_id, obj, methods)
 	local id = existing_id or (obj and obj.id) or {'new'};
 	
 	if obj then
@@ -135,6 +136,7 @@ function create(entity, existing_id, obj)
 	proxy = setmetatable({}, {
 		__entity=entity,
 		__id=id,
+		__methods=methods,
 		__obj=pool[entity][id] or obj,
 		__index = get,
 		__newindex = set,
