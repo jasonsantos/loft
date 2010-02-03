@@ -138,7 +138,7 @@ function create(entity, existing_id, obj)
 		__obj=pool[entity][id] or obj,
 		__index = get,
 		__newindex = set,
-		__dirty=true
+		__dirty=false
 	}); 
 	
 	proxies[entity][id]= proxies[entity][id] or setmetatable({}, {__mode='v'})

@@ -59,14 +59,13 @@ end
 do -- testing the touchy side of proxy
 	local o = proxy.create('Alien', nil, {name="E.T."})
 	local p = proxy.create('Alien', nil, {name="Spock"})
-	assert(proxy.is_dirty(o))
-	assert(proxy.is_dirty(p))
-	proxy.reset(o)
+	assert(not proxy.is_dirty(o))
+	assert(not proxy.is_dirty(p))
+	proxy.touch(p)
 	assert(not proxy.is_dirty(o))
 	assert(proxy.is_dirty(p))
-	proxy.touch(o)
 	proxy.reset(p)
-	assert(proxy.is_dirty(o))
+	assert(not proxy.is_dirty(o))
 	assert(not proxy.is_dirty(p))
 end
 
