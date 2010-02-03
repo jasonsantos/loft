@@ -50,7 +50,7 @@ function engine(opts)
 	local provider = require('loft.providers.'..provider_name)
 	
 	-- provider initialization. 
-	-- A provider will likely want to store connection data on the engine table. 
+	-- A provider will likelenginey want to store connection data on the engine table. 
 	-- This gives it the oportunity for preparing the engine.
 	engine.provider = provider
 	engine.provider_setup = provider.setup(engine)
@@ -117,8 +117,16 @@ engine_api=function(engine)
 	end
 	
 	-- Loft Engine Public API Table
-	local api = engine or {}
+	local api = {}
 	
+	local api_function = function(entity, function_name, object_self)
+		return function(o,...) 
+			if object_self ~= o then
+				error('Function must be called as method (ex.: '..tostring(entity.name)..':'.. tostring(function_name).. '())', 2) 
+			end
+			return api[function_name](entity, ...) 
+		end
+	end
 	
 	--- Creates a new instance of an object
 	-- alternatively, can turn a simple table into an object
@@ -138,7 +146,14 @@ engine_api=function(engine)
 			error("Object must belong to a valid entity",2)
 		end
 		
-		return proxy.create(entity, id, obj)
+		return proxy.create(entity, id, obj, {
+			save = function(...)
+				return api.save(entity, ...)
+			end,
+			destroy = function(...)
+				return api.destroy(entity, ...)
+			end
+		})
 	end
 	
 	--- Recovers an object by its ID.
@@ -179,7 +194,7 @@ engine_api=function(engine)
 	--				    position [1] of the options table.
 	-- 
 	--  sorting			array containing a list of fields to be used in the sorting clauses 
-	--
+	--guard
 	-- pagination		TODO*********
 	--
 	-- 
@@ -241,12 +256,12 @@ engine_api=function(engine)
 	-- @param obj object to be saved
 	-- @param force boolean indicating whethe the object is to be saved even if it's not changed
 	-- @return boolean indicating whether the object needed to be saved or not (i.e. if it was changed since its last)
-	function api.save(obj, force)
+	function api.save(entity, obj, force)
 		if not proxy.is_dirty(obj) and not force then
 			return false
 		end
 		
-		local entity = proxy.get_entity(obj)
+		local entity = entity or proxy.get_entity(obj)
 		local data = proxy.get_object(obj)
 		if not entity or not data then
 			error('invalid object', 2)
@@ -278,13 +293,13 @@ engine_api=function(engine)
 	-- @param obj object to be destroyed
 	-- @param force boolean indicating whethe the object is to be saved even if it has been changed
 	-- @return true if object was successfully erased from persistence
-	function api.destroy(obj, force)
+	function api.destroy(entity ,obj, force)
 		if proxy.is_dirty(obj) and (not engine.options.forced_deletions and not force) then
 			--TODO: add an option for always forcing deletions
 			return false, "Cannot delete a changed object (unless 'force' is selected)"
 		end
 		
-		local entity = proxy.get_entity(obj)
+		local entity = entity or proxy.get_entity(obj)
 		local id = proxy.get_id(obj)
 		if not entity or not id then
 			error('invalid object', 2)
@@ -302,8 +317,18 @@ engine_api=function(engine)
 	--- Initialize a schema to be used with Loft
 	-- entities  and objects will receive Loft methods
 	function api.decorate(schema, options)
-		error'not implemented'
+		local model = {}
+		for entity_name,inner_entity in pairs(schema.entities) do
+			local new_entity = {}
+			for function_name, fn in pairs(api) do
+				new_entity[function_name] = api_function(inner_entity, function_name, new_entity)
+			end
+			model[entity_name] = new_entity
+		end
+		return model
 	end
+
+	table.add(engine, api)
 
 	return api
 end
