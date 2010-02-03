@@ -319,16 +319,22 @@ function database_engine.init(engine, connection_params)
 			local n = #cursors+1
 			cursors[n]=cursor
 			
+			local value = cursor:fetch({},'a')
+			if not value then
+				cursor:close()
+				cursors[n] = nil
+			end
+
 			-- returns an iterator function
 			return function()
-				
-				local value = cursor:fetch({},'a')
+				local valueToReturn = value
+				value = value and cursor:fetch({},'a')
 				if not value then
 					cursor:close()
 					cursors[n] = nil
 				end
-								
-				return value
+				
+				return valueToReturn
 			end
 		else
 			return cursor, connection
@@ -374,6 +380,8 @@ function persist(engine, entity, id, obj)
 	local t_required = {}
 	local isUpdate = false
 	
+	event.notify('before', 'persist', {engine=engine, entity=entity, id=id, obj=obj})
+	
 	-- Checking if every required field is present
 	for i, column in ipairs(t.__columns) do
 		
@@ -411,22 +419,27 @@ function persist(engine, entity, id, obj)
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local row, object_or_cursor, connection = pcall(engine.db.exec, query)
+	local ok, data, ___EVIL_CONNECTION = pcall(engine.db.exec, query)
 	
 	if (isUpdate == true) then
-		return row, object_or_cursor
+		return ok, data
 	end
 	
-	if row then
-		if ( type(object_or_cursor) ~= "number" ) then
+	if ok then
+		if ( type(data) ~= "number" ) then
 			--TODO: refresh object with other eventual database-generated values 
-			obj.id = object_or_cursor.id or obj.id 
+			obj.id = data.id or obj.id 
 		else
-			obj.id = connection:getlastautoid() 
+			obj.id = ___EVIL_CONNECTION:getlastautoid() 
 		end
+		
+		event.notify('after', 'persist', {engine=engine, entity=entity, id=id, obj=obj, data=data })
+		
 		return true, obj.id
 	else
-		return nil, object_or_cursor
+		event.notify('error', 'persist', {engine=engine, entity=entity, id=id, obj=obj, message=object_or_cursor})
+		
+		return nil, data
 	end 
 end
 
@@ -571,8 +584,6 @@ function count(engine, options)
 		local results = {}
 		local row = iter_num() 
 		if row then
-			-- Todo. Better code the cursor function!
-			iter_num()  --closed the cursor!
 			return row.count
 		end
 	end

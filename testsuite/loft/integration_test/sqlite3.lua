@@ -41,8 +41,8 @@ local firstId
 local id
 loft_instance.create(default.entities.test)
 
-table.foreachi(loft_instance.find(default.entities.test).items, function(i, item)
-	assert(loft_instance.destroy( item, true ))
+table.foreachi(loft_instance.find(default.entities.test), function(i, item)
+	assert(loft_instance.destroy( item ))
 end)
  
 for i=1, NUM_OF_OBJECTS_TO_GENERATE do
@@ -73,43 +73,43 @@ local lastId = firstId + NUM_OF_OBJECTS_TO_GENERATE - 1
 
 assert(id==lastId, 'wrong number of objects created')
 
---~ local t = loft_instance.get(default.entities.test, lastId)
+local t = loft_instance.get(default.entities.test, lastId)
 
---~ local t2 = loft_instance.find(default.entities.test, {filters = {id = lastId}})
+local t2 = loft_instance.find(default.entities.test, {filters = {id = lastId}})[1]
 
---~ assert( t.id == t2.id, 'check equals data in get and find')
---~ assert( t.name == t2.name, 'check equals data in get and find' )
+assert( t.id == t2.id, 'check if id is the same in get and find')
+assert( t.name == t2.name, 'check if name is the same in get and find' )
 
---~ assert(t.id, 'object was not retrieved for id==' .. lastId)
---~ assert(t.name == 'test' .. (lastId-firstId), 'The proper object was not retrieved')
+assert(t.id, 'object was not retrieved for id==' .. lastId)
 
-local list = {}
+assert(t.name == 'test' .. (lastId-(firstId-1)), 'The proper object was not retrieved')
 
-table.foreachi(loft_instance.find(default.entities.test, {filters = {name='test98'}}).items, function(i, item)
-	assert(item.name=='test98')
-	table.insert(list, item)
+local list = loft_instance.find(default.entities.test, {filters = {name='test99'}})
+
+table.foreachi(list, function(i, item)
+	assert(item.name=='test99')
 end)
 
 assert(#list==1, 'search did not find the item by name')
 
 table.foreachi(list, function(i, item)
-	loft_instance.destroy( item )
+	assert(loft_instance.destroy( item), "unable to destroy item")
 end)
 
-list = loft_instance.find(default.entities.test, {filters = {name='test98'}, visitor = function(item)
+list = loft_instance.find(default.entities.test, {filters = {name='test99'}, visitor = function(item)
 	assert(item.name=='test98')
 	table.insert(list, item)
 end})
 
 assert(#list==0, 'erase did not remove the item properly')
 
-list = loft_instance.find(default.entities.test, {filters = {name='test98'}}).items
+list = loft_instance.find(default.entities.test, {filters = {name='test98'}})
 
 assert(#list==1, 'short search did not find the item by name')
 
-loft_instance.destroy( list[1], true )
+assert(loft_instance.destroy( list[1] ), "unable to destroy item")
 
-list = loft_instance.find(default.entities.test, {filters = {name='test98'}}).items
+list = loft_instance.find(default.entities.test, {filters = {name='test98'}})
 
 assert(#list==0, 'erase did not remove the item properly')
 
@@ -121,7 +121,7 @@ for i=1, NUM_OF_OBJECTS_TO_GENERATE / NumLimit do
 			limit = NumLimit
 		},
 		sorting = {"+id"}
-	 }).items
+	 })
 	 table.foreachi(list, function (v, t)
 		assert(t.name == "test" .. i)
 		i = i + 1
@@ -144,15 +144,15 @@ _count = loft_instance.count(default.entities.test)
 
 assert(_count, 'global search found the wrong amount of items')
 
-list = loft_instance.find(default.entities.test, { sorting = {'-name'}}).items
+list = loft_instance.find(default.entities.test, { sorting = {'-name'}})
 
-assert(#list==99, 'global search found the wrong amount of items')
+assert(#list==98, 'global search found the wrong amount of items')
 
 table.foreachi(list, function(i, item)
-	assert(loft_instance.destroy( item, true ) ~= false, "Don't search and destroy objects loft")
+	assert(loft_instance.destroy( item ) ~= false, "Don't search and destroy objects loft")
 end)
 
-list = loft_instance.find(default.entities.test).items
+list = loft_instance.find(default.entities.test)
 
 assert(#list==0, 'erase did not remove all items properly')
 
