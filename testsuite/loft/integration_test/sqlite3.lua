@@ -25,6 +25,8 @@ local default = schema.expand(function ()
 	
 end)
 
+local model = loft_instance.decorate(default)
+
 local now = os.clock()
 local log = function()
 	print('log: ' .. os.clock() - now)
@@ -39,18 +41,19 @@ local times = {}
 local duplicatesTimes = {}
 local firstId
 local id
-loft_instance.create(default.entities.test)
+
+model.test:create()
 
 table.foreachi(loft_instance.find(default.entities.test), function(i, item)
-	assert(loft_instance.destroy( item ))
+	assert(item:destroy())
 end)
  
 for i=1, NUM_OF_OBJECTS_TO_GENERATE do
 	-- persists a given table
-	local l = loft_instance.new(default.entities.test)
+	local l = model.test:new()
 	l.name = 'test'..i; 
 	l.address = (i*347) .. ', Elm Street';
-	loft_instance.save(l)
+	l:save()
 	id = l.id
 	
 	if (not firstId ) then
@@ -73,9 +76,9 @@ local lastId = firstId + NUM_OF_OBJECTS_TO_GENERATE - 1
 
 assert(id==lastId, 'wrong number of objects created')
 
-local t = loft_instance.get(default.entities.test, lastId)
+local t = model.test:get(lastId)
 
-local t2 = loft_instance.find(default.entities.test, {filters = {id = lastId}})[1]
+local t2 = model.test:find{filters = {id = lastId}}[1]
 
 assert( t.id == t2.id, 'check if id is the same in get and find')
 assert( t.name == t2.name, 'check if name is the same in get and find' )
@@ -84,7 +87,7 @@ assert(t.id, 'object was not retrieved for id==' .. lastId)
 
 assert(t.name == 'test' .. (lastId-(firstId-1)), 'The proper object was not retrieved')
 
-local list = loft_instance.find(default.entities.test, {filters = {name='test99'}})
+local list = model.test:find{filters = {name='test99'}}
 
 table.foreachi(list, function(i, item)
 	assert(item.name=='test99')
@@ -93,29 +96,29 @@ end)
 assert(#list==1, 'search did not find the item by name')
 
 table.foreachi(list, function(i, item)
-	assert(loft_instance.destroy( item), "unable to destroy item")
+	assert(item:destroy(), "unable to destroy item")
 end)
 
-list = loft_instance.find(default.entities.test, {filters = {name='test99'}, visitor = function(item)
+list = model.test:find( {filters = {name='test99'}, visitor = function(item)
 	assert(item.name=='test98')
 	table.insert(list, item)
 end})
 
 assert(#list==0, 'erase did not remove the item properly')
 
-list = loft_instance.find(default.entities.test, {filters = {name='test98'}})
+list = model.test:find( {filters = {name='test98'}})
 
 assert(#list==1, 'short search did not find the item by name')
 
-assert(loft_instance.destroy( list[1] ), "unable to destroy item")
+assert(list[1]:destroy(), "unable to destroy item")
 
-list = loft_instance.find(default.entities.test, {filters = {name='test98'}})
+list = model.test:find( {filters = {name='test98'}})
 
 assert(#list==0, 'erase did not remove the item properly')
 
 local NumLimit = 2
 for i=1, NUM_OF_OBJECTS_TO_GENERATE / NumLimit do
-	list = loft_instance.find(default.entities.test, { 
+	list = model.test:find( { 
 		pagination = {
 			offset = i - 1,
 			limit = NumLimit
@@ -128,31 +131,31 @@ for i=1, NUM_OF_OBJECTS_TO_GENERATE / NumLimit do
 	 end)
 end
 
-_count = loft_instance.count(default.entities.test, {filters = {name='test98'}})
+_count = model.test:count( {filters = {name='test98'}})
 
 assert(_count==0, 'erase did not remove the item properly')
 
-assert( loft_instance.count(default.entities.test, {filters = {name='test1'}}) == 1)
+assert( model.test:count( {filters = {name='test1'}}) == 1)
 
-list = loft_instance.find(default.entities.test, { sorting = {'-name'}, pagination = {limit=10}})
+list = model.test:find( { sorting = {'-name'}, pagination = {limit=10}})
 
 assert(#list==10, 'limited search has brought the wrong amount of items')
 
-assert( pcall( loft_instance.count, default.entities.test, { filters = {COLUMN_WRONG='test1'}}) == false)
+assert( pcall( model.test.count, model.test, { filters = {COLUMN_WRONG='test1'}}) == false)
 
-_count = loft_instance.count(default.entities.test)
+_count = model.test:count()
 
 assert(_count, 'global search found the wrong amount of items')
 
-list = loft_instance.find(default.entities.test, { sorting = {'-name'}})
+list = model.test:find( { sorting = {'-name'}})
 
 assert(#list==98, 'global search found the wrong amount of items')
 
 table.foreachi(list, function(i, item)
-	assert(loft_instance.destroy( item ) ~= false, "Don't search and destroy objects loft")
+	assert(item:destroy() ~= false, "Don't search and destroy objects loft")
 end)
 
-list = loft_instance.find(default.entities.test)
+list = model.test:find()
 
 assert(#list==0, 'erase did not remove all items properly')
 

@@ -50,7 +50,7 @@ function engine(opts)
 	local provider = require('loft.providers.'..provider_name)
 	
 	-- provider initialization. 
-	-- A provider will likelenginey want to store connection data on the engine table. 
+	-- A provider will likely want to store connection data on the engine table. 
 	-- This gives it the oportunity for preparing the engine.
 	engine.provider = provider
 	engine.provider_setup = provider.setup(engine)
@@ -194,7 +194,7 @@ engine_api=function(engine)
 	--				    position [1] of the options table.
 	-- 
 	--  sorting			array containing a list of fields to be used in the sorting clauses 
-	--guard
+	--
 	-- pagination		TODO*********
 	--
 	-- 
