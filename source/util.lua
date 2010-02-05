@@ -1,3 +1,5 @@
+require 'lpeg'
+
 function table.copy(t)
 	local other = {}
 	for k,v in pairs(t) do
@@ -29,3 +31,9 @@ function table.count(t)
 	return n
 end
 
+function string.split(s, sep)
+	sep = lpeg.P(sep)
+	local elem = lpeg.C((1-sep)^0)
+	local p = elem * (sep * elem)^0
+	return lpeg.match(p, s)
+end
