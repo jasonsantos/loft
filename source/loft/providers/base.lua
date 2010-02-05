@@ -1,6 +1,7 @@
 local cosmo = require 'cosmo'
 
 require'util'
+require'events'
 
 ----------------------------------------------
 -- Persistence Provider for the Loft Module
@@ -257,17 +258,6 @@ local filters_fill_cosmo = function (table_fill_cosmo, _filters)
 end
 
 -- ######################################### --
---  EVENT HANDLER
--- ######################################### --
-
-local event = {
-	notify = function(hook, action, options)
-		-- TODO
-	end
-}
-
-
--- ######################################### --
 --  DATABASE ENGINE
 -- ######################################### --
 
@@ -380,7 +370,7 @@ function persist(engine, entity, id, obj)
 	local t_required = {}
 	local isUpdate = false
 	
-	event.notify('before', 'persist', {engine=engine, entity=entity, id=id, obj=obj})
+	events.notify('before', 'persist', {engine=engine, entity=entity, id=id, obj=obj})
 	
 	-- Checking if every required field is present
 	for i, column in ipairs(t.__columns) do
@@ -433,11 +423,11 @@ function persist(engine, entity, id, obj)
 			obj.id = ___EVIL_CONNECTION:getlastautoid() 
 		end
 		
-		event.notify('after', 'persist', {engine=engine, entity=entity, id=id, obj=obj, data=data })
+		events.notify('after', 'persist', {engine=engine, entity=entity, id=id, obj=obj, data=data })
 		
 		return true, obj.id
 	else
-		event.notify('error', 'persist', {engine=engine, entity=entity, id=id, obj=obj, message=object_or_cursor})
+		events.notify('error', 'persist', {engine=engine, entity=entity, id=id, obj=obj, message=object_or_cursor})
 		
 		return nil, data
 	end 
