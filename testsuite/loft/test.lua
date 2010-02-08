@@ -134,12 +134,12 @@ do -- engine separation on plugins
 			counter = counter + 1
 			engine.test = counter
 		end,
-		run = function(...) end
+		run = function(...)
+		end
 	}
 	local L = loft.engine{provider='mock'}
 	local M = loft.engine{provider='mock'}
-	assert(L.test==1)
-	assert(M.test==2)
+	assert(counter==2)
 end
 
 do -- test of provider loading throu require
@@ -154,11 +154,13 @@ do -- test of provider loading throu require
 	assert(touched==1)
 end
 
+--[[
 do -- test separated plugin configurations for different engines
 	package.loaded['loft.providers.mock'] = {
 		setup=function(engine)
 		end
 	}
+
 	loft.plugins.add{
 		name = 'isolated_plugin',
 		configure = function(plugin, engine)
@@ -181,6 +183,7 @@ do -- test separated plugin configurations for different engines
 	assert(p1.run()=='Anil')
 	assert(p2.run()=='Byes')
 end
+]]
 
 do -- testing the 'new' method on the public API
 	package.loaded['loft.providers.mock'] = {
@@ -212,8 +215,10 @@ do -- testing the 'save' method on the public API
 	}
 	
 	local L = loft.engine{provider='mock'}
-	local o = L.new({'Person'},{id=1, name='Susan Foreman'})
-	L.save(o)
+	local o = L.new({'Person'},{id=1, name='Susan'})
+	assert(o.name=='Susan')
+	o.name = 'Susan Foreman'
+	L.save({'Person'},o)
 	assert(name=='Susan Foreman')
 end
 
@@ -231,12 +236,15 @@ do -- testing the 'save' method with id updating on proxies
 	}
 	
 	local L = loft.engine{provider='mock'}
-	local o = L.new({'Person'},{ name='Martha Jones'})
-	L.save(o)
+	local o = L.new({'Person'},{ name='Martha'})
+	assert(o.name == 'Martha')
+	o.name = 'Martha Jones'
+	L.save({'Person'},o)
 	assert(name =='Martha Jones')
 	assert(o.id == savedId)
 	local p = L.new({'Person'},{ id=33, name='Rose Tyler'})
-	L.save(p)
+	proxy.touch(p)
+	L.save({'Person'},p)
 	assert(name =='Rose Tyler')
 	assert(p.id == 33)
 end
@@ -249,18 +257,19 @@ do -- testing the 'destroy' method on the public API
 		persist=function(e,en,id,data)
 			-- yea, persisting
 		end,
-		erase=function(e,en,id)
+		delete=function(e,en,id)
 			-- oh, erasing alright
 			return true
 		end
 	}
 	local L = loft.engine{provider='mock'}
 	local o = L.new({'Person'},{id=1, name='Jack Harkness'})
-	L.save(o)
+	proxy.touch(o)
+	L.save({'Person'},o)
 	
 	assert(o.name=='Jack Harkness')
 	
-	assert(L.destroy(o))
+	assert(L.destroy({'Person'},o))
 	
 	assert(not o.name)
 end
@@ -276,7 +285,9 @@ do -- testing the find method on the public API
 		end,
 		search=function(e,options)
 			local fn = options.visitor
-			table.foreach(result, fn)
+			for _,value in ipairs(result) do
+				fn(value)
+			end
 		end
 	}
 	
@@ -306,7 +317,9 @@ do -- testing the count method on the public API
 		end,
 		search=function(e,options)
 			local fn = options.visitor
-			table.foreach(result, fn)
+			for _,value in ipairs(result) do
+				fn(value)
+			end
 		end,
 		count=function(e,options)
 			return #result
@@ -322,3 +335,4 @@ do -- testing the count method on the public API
 	assert(n==#l)
 end
 
+print'OK'
