@@ -33,7 +33,7 @@ description = [[Generic Module for Database Behaviour]]
 -- escapes.new_lines
 -- escapes.reserved_field_name
 
--- database_type
+-- database_type 
 -- reserved_words
 -- field_types
 -- sql
@@ -268,7 +268,7 @@ database_engine = {}
 function database_engine.init(engine, connection_params)
 	local luasql, luasql_connect
 	local db = database_engine
-	local database_type = engine.options.database_type
+	local database_type = database_type or engine.options.database_type 
 	local connection
 	local cursors = {}
 	
