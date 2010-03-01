@@ -44,9 +44,11 @@ local id
 
 model.test:create()
 
-table.foreachi(loft_instance.find(default.entities.test), function(i, item)
+local items = loft_instance.find(default.entities.test)
+
+for _, item in ipairs(items) do
 	assert(item:destroy())
-end)
+end
  
 for i=1, NUM_OF_OBJECTS_TO_GENERATE do
 	-- persists a given table
@@ -55,7 +57,7 @@ for i=1, NUM_OF_OBJECTS_TO_GENERATE do
 	l.address = (i*347) .. ', Elm Street';
 	l:save()
 	id = l.id
-	
+		
 	if (not firstId ) then
 		firstId = id
 	end
@@ -66,11 +68,12 @@ for i=1, NUM_OF_OBJECTS_TO_GENERATE do
 end
  
 local generatedId = firstId
-table.foreachi(times, function(k, v)
+
+for k, v in ipairs(times) do
 	assert(v == generatedId, 'generated Id is out of sequence') 
 	assert(duplicatesTimes[v] == 1, 'generated Id is duplicated')
 	generatedId = generatedId + 1
-end)
+end
 
 local lastId = firstId + NUM_OF_OBJECTS_TO_GENERATE - 1
 
@@ -89,30 +92,33 @@ assert(t.name == 'test' .. (lastId-(firstId-1)), 'The proper object was not retr
 
 local list = model.test:find{filters = {name='test99'}}
 
-table.foreachi(list, function(i, item)
+for _,item in ipairs(list) do
 	assert(item.name=='test99')
-end)
+end
 
 assert(#list==1, 'search did not find the item by name')
 
-table.foreachi(list, function(i, item)
+for _,item in ipairs(list) do
 	assert(item:destroy(), "unable to destroy item")
-end)
+end
 
-list = model.test:find( {filters = {name='test99'}, visitor = function(item)
-	assert(item.name=='test98')
-	table.insert(list, item)
-end})
+list = model.test:find{
+	filters = {name='test99'}, 
+	visitor = function(item)
+		assert(item.name=='test98')
+		table.insert(list, item)
+	end
+}
 
 assert(#list==0, 'erase did not remove the item properly')
 
-list = model.test:find( {filters = {name='test98'}})
+list = model.test:find{filters = {name='test98'}}
 
 assert(#list==1, 'short search did not find the item by name')
 
 assert(list[1]:destroy(), "unable to destroy item")
 
-list = model.test:find( {filters = {name='test98'}})
+list = model.test:find{filters = {name='test98'}}
 
 assert(#list==0, 'erase did not remove the item properly')
 
@@ -151,9 +157,9 @@ list = model.test:find( { sorting = {'-name'}})
 
 assert(#list==98, 'global search found the wrong amount of items')
 
-table.foreachi(list, function(i, item)
+for _,item in ipairs(list) do
 	assert(item:destroy() ~= false, "Don't search and destroy objects loft")
-end)
+end
 
 list = model.test:find()
 
