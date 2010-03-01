@@ -177,6 +177,12 @@ engine_api=function(engine)
 	end
 	
 	
+	--- Creates an entity
+	-- if the provider supports creating entities, this will create a 
+	-- database table with the appropriate name and the corresponding
+	-- fields
+	-- @param entity 	schema entity of the object to be retrieved
+	-- @return 			true if the table was created
 	function api.create(entity)
 		local create = provider_function(entity, 'create')
 		return create(entity, id)
@@ -195,8 +201,11 @@ engine_api=function(engine)
 	-- 
 	--  sorting			array containing a list of fields to be used in the sorting clauses 
 	--
-	-- pagination		TODO*********
-	--
+	--  pagination		table containing pagination options
+	--					valid options are
+	--					  'limit' or 'top' or 'page_size' = amount of items to be fetched
+	--					  'offset' = position of the first item to be fetched
+	--					  'page' = page to be fetched. page_size can be configured in the global options table
 	-- 
 	--  filter		 	table containing a set of filter conditions
 	--					filters are tables with keys representing fieldnames
@@ -204,7 +213,7 @@ engine_api=function(engine)
 	--					(when you want to filter by equalty to a specific value)
 	-- 					arrays (when you want to indicate multiple possible values)
 	--					or tables (when you want to indicate a distinct comparison operation).
-	--					Ex.: { nome = "fulano", state = {1, 4, 6}, {like= '%manager%'} } 
+	--					Ex.: { nome = "fulano", state = {1, 4, 6}, position={like= '%manager%'}, salary={lt=30000} } 
 	--					
 	--	visitor			function to be executed every time an item is found in persistence
 	--

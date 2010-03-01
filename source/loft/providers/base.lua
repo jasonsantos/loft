@@ -522,7 +522,10 @@ function search(engine, options)
 	local t = table_fill_cosmo(engine, entity)
 	
 	if ( type(pagination) == "table" and table.count(pagination) > 0) then
-		t.pagination = pagination	
+		local limit = pagination.limit or pagination.top or options.page_size or engine.options.page_size
+		local offset = pagination.offset or (pagination.page and limit * (pagination.page - 1))
+		
+		t.pagination = {limit=limit, offset=offset}
 	end
 	
 	if ( type(sorting) == "table" and #sorting > 0 ) then
