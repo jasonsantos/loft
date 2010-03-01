@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS $table_name (
 ]=])
 ]==],
 	
-	INSERT = [[INSERT INTO $table_name ($data{", "}[=[$escape_field_name{$column_name}$sep]=]) VALUES ($data{", "}[=[$value$sep ]=]); SELECT LAST_INSERT_ID() as id]],
+	INSERT = [[INSERT INTO $table_name ($data{", "}[=[$escape_field_name{$column_name}$sep]=]) VALUES ($data{", "}[=[$value$sep ]=])]],
 	
 	UPDATE = [==[UPDATE $table_name SET $data{", "}[=[$escape_field_name{$column_name}=$value$sep]=] $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==],
 	
@@ -155,7 +155,9 @@ CREATE TABLE IF NOT EXISTS $table_name (
 		]]FROM $table_name
 		$if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[=[$if{$pagination|limit}[[ LIMIT $pagination|limit ]] $if{$pagination|offset}[[OFFSET $pagination|offset]]]=]]==],
 	
-	DELETE = [==[DELETE FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==]
+	DELETE = [==[DELETE FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==],
+	
+	LASTID = [==[SELECT LAST_INSERT_ID()]==]
 	
 }
 
@@ -268,9 +270,10 @@ database_engine = {}
 function database_engine.init(engine, connection_params)
 	local luasql, luasql_connect
 	local db = database_engine
-	local database_type = database_type or engine.options.database_type 
+	local database_type = engine.options.database_type or database_type 
 	local connection
 	local cursors = {}
+	local insertions = {}
 	
 	db.open_connection = function()
 		local luasql, err = luasql or require("luasql." .. database_type)
@@ -293,11 +296,21 @@ function database_engine.init(engine, connection_params)
 		conn:close()
 	end  
 
+	db.last_id = function(...)
+		local connection = connection or assert(db.open_connection())
+		
+		if not connection then
+			error('Connection to the database could not be established')
+		end
+		
+		return assert(connection:execute(string.format(sql.LASTID, ...)))
+	end
+
 	db.exec = function(sql, ...)
 		--TODO: think about connection closing strategies
 		
 		local params = {...}
-		local connection = connection or db.open_connection()
+		local connection = connection or assert(db.open_connection())
 		
 		if not connection then
 			error('Connection to the database could not be established')
@@ -305,7 +318,7 @@ function database_engine.init(engine, connection_params)
 		
 		local cursor = assert(connection:execute(string.format(sql, ...)))
 		
-		if type(cursor)~='number' then
+		if cursor and type(cursor)~='number' then
 			local n = #cursors+1
 			cursors[n]=cursor
 			
@@ -327,7 +340,7 @@ function database_engine.init(engine, connection_params)
 				return valueToReturn
 			end
 		else
-			return cursor, connection
+			return cursor, db
 		end
 	end
 	
@@ -399,35 +412,37 @@ function persist(engine, entity, id, obj)
 	t.id = obj.id
 	
 	local query
+	local isInsert = false
 	if ( t.id ) then
 		filters_fill_cosmo(t, { id = id })	
 		query = cosmo.fill(sql.UPDATE, t)
 		isUpdate = true
 	else
+		isInsert = true
 		query = cosmo.fill(sql.INSERT, t)
 	end
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local ok, data, ___EVIL_CONNECTION = pcall(engine.db.exec, query)
+	local ok, data, dbengine = pcall(engine.db.exec, query)
 	
 	if (isUpdate == true) then
 		return ok, data
 	end
 	
 	if ok then
-		if ( type(data) ~= "number" ) then
+		if data and type(data) ~= "number" then
 			--TODO: refresh object with other eventual database-generated values 
 			obj.id = data.id or obj.id 
-		else
-			obj.id = ___EVIL_CONNECTION:getlastautoid() 
+		elseif isInsert and not obj.id then
+			obj.id = dbengine:last_id()
 		end
 		
 		events.notify('after', 'persist', {engine=engine, entity=entity, id=id, obj=obj, data=data })
 		
 		return true, obj.id
 	else
-		events.notify('error', 'persist', {engine=engine, entity=entity, id=id, obj=obj, message=object_or_cursor})
+		events.notify('error', 'persist', {engine=engine, entity=entity, id=id, obj=obj, message=data})
 		
 		return nil, data
 	end 
@@ -529,11 +544,7 @@ function search(engine, options)
 	--TODO: think about query logging strategies
 	local ok, iter = pcall(engine.db.exec, query)
 	
-	if (not ok) then
-		error(iter)
-	end
-	
-	if iter then
+	if ok then
 		--TODO: implement resultset proxies using the list module
 		local results = {}
 		local fn = visitorFunction or passover_function
