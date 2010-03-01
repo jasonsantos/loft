@@ -183,7 +183,7 @@ engine_api=function(engine)
 	end
 	
 	--- Finds a list of objects matching a given set of filters.
-	-- foreach given object matching the criteria, if it is already 
+	-- for each given object matching the criteria, if it is already 
 	-- in memory cache, it is obtained directly from there
 	-- if not, it will be loaded from persistence and restored to memory cache
 	--
