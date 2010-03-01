@@ -171,7 +171,7 @@ engine_api=function(engine)
 		
 		local retrieve = provider_function(entity, 'retrieve')
 		
-		local data = retrieve(entity, id)
+		local data = assert(retrieve(entity, id))
 		
 		return data and api.new(entity, data, id)
 	end
@@ -179,7 +179,7 @@ engine_api=function(engine)
 	
 	function api.create(entity)
 		local create = provider_function(entity, 'create')
-		create(entity, id)
+		return create(entity, id)
 	end
 	
 	--- Finds a list of objects matching a given set of filters.
@@ -227,7 +227,7 @@ engine_api=function(engine)
 		
 		local search = provider_function(entity, 'search')
 		
-		search{entity=entity, filters=filters, sorting=sorting, pagination=pagination, visitor=visitor}
+		assert(search{entity=entity, filters=filters, sorting=sorting, pagination=pagination, visitor=visitor})
 		
 		if list and not options.noLists then
 			results = list.create(results)
@@ -247,7 +247,7 @@ engine_api=function(engine)
 		
 		local count = provider_function(entity, 'count')
 		
-		return count{entity=entity, filters=filters}
+		return assert(count{entity=entity, filters=filters})
 	end	
 	
 	--- Saves the object to the persistence.
@@ -275,7 +275,7 @@ engine_api=function(engine)
 			id = nil
 		end
 		
-		persist(entity, id, data)
+		assert(persist(entity, id, data))
 		
 		if data.id and data.id ~= id then
 			obj.id = data.id
@@ -307,7 +307,7 @@ engine_api=function(engine)
 
 		local delete = provider_function(entity, 'delete')
 		
-		if delete(entity, id) then
+		if assert(delete(entity, id)) then
 			return proxy.invalidate(obj)
 		end
 		
