@@ -211,6 +211,7 @@ do -- testing the 'save' method on the public API
 		end,
 		persist=function(e,en,id,data)
 			name = data.name
+			return true
 		end
 	}
 	
@@ -232,6 +233,7 @@ do -- testing the 'save' method with id updating on proxies
 		persist=function(e,en,id,data)
 			name = data.name
 			data.id = type(id)~='table' and id or inc()
+			return true
 		end
 	}
 	
@@ -256,6 +258,7 @@ do -- testing the 'destroy' method on the public API
 		end,
 		persist=function(e,en,id,data)
 			-- yea, persisting
+			return true
 		end,
 		delete=function(e,en,id)
 			-- oh, erasing alright
@@ -288,6 +291,7 @@ do -- testing the find method on the public API
 			for _,value in ipairs(result) do
 				fn(value)
 			end
+			return true
 		end
 	}
 	
@@ -320,6 +324,7 @@ do -- testing the count method on the public API
 			for _,value in ipairs(result) do
 				fn(value)
 			end
+			return true
 		end,
 		count=function(e,options)
 			return #result
