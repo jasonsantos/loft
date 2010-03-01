@@ -279,15 +279,15 @@ function database_engine.init(engine, connection_params)
 	local cursors = {}
 	local insertions = {}
 	
-	db.open_connection = function()
+	db.open_connection = db.open_connection or function()
 		local luasql, err = luasql or require("luasql." .. database_type)
 		local luasql_connect, err = luasql_connect or luasql[database_type]()
-		local connection, err = luasql_connect:connect(unpack(connection_params))
+		connection, err = luasql_connect:connect(unpack(connection_params))
 		
 		return connection
 	end  
 
-	db.close_connection = function()
+	db.close_connection = db.close_connection or function()
 		local conn = connection
 		connection = nil
 		
@@ -299,18 +299,22 @@ function database_engine.init(engine, connection_params)
 		end
 		conn:close()
 	end  
+	
+	db.get_last_id = db.get_last_id or function(connection, ...)
+		return assert(connection:execute(string.format(sql.LASTID, ...)))
+	end
 
-	db.last_id = function(...)
+	db.last_id = db.last_id or function(...)
 		local connection = connection or assert(db.open_connection())
 		
 		if not connection then
 			error('Connection to the database could not be established')
 		end
 		
-		return assert(connection:execute(string.format(sql.LASTID, ...)))
+		return db.get_last_id(connection, ...) 
 	end
 
-	db.exec = function(sql, ...)
+	db.exec = db.exec or function(sql, ...)
 		--TODO: think about connection closing strategies
 		
 		local params = {...}
@@ -347,8 +351,6 @@ function database_engine.init(engine, connection_params)
 			return cursor
 		end
 	end
-	
-	table.foreach(db, print)
 	
 	return db
 end
