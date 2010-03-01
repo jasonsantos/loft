@@ -151,9 +151,9 @@ CREATE TABLE IF NOT EXISTS $table_name (
 	UPDATE = [==[UPDATE $table_name SET $data{", "}[=[$escape_field_name{$column_name}=$value$sep]=] $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==],
 	
 	SELECT = [==[SELECT 
-		$columns{", "}[[ $if{$column_name}[[$escape_field_name{$column_name}]][[$func]] as $escape_field_name{$alias}$sep
-		]]FROM $table_name
-		$if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[=[$if{$pagination|limit}[[ LIMIT $pagination|limit ]] $if{$pagination|offset}[[OFFSET $pagination|offset]]]=]]==],
+  $columns{", "}[[ $if{$column_name}[[$escape_field_name{$column_name}]][[$func]] as $escape_field_name{$alias}$sep
+  ]]FROM $table_name
+  $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[=[$if{$pagination|limit}[[ LIMIT $pagination|limit ]] $if{$pagination|offset}[[OFFSET $pagination|offset]]]=]]==],
 	
 	DELETE = [==[DELETE FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==],
 	
@@ -251,6 +251,10 @@ local filters_fill_cosmo = function (table_fill_cosmo, _filters)
 					table.insert(lines, col.column_name .. ' <= ' .. fn(val.le))
 				elseif val.ge then
 					table.insert(lines, col.column_name .. ' >= ' .. fn(val.ge))
+				elseif val.null then
+					table.insert(lines, col.column_name .. ' IS NULL')
+				elseif val.notnull then
+					table.insert(lines, col.column_name .. ' IS NOT NULL')
 				end
 			end
 		end
@@ -340,9 +344,11 @@ function database_engine.init(engine, connection_params)
 				return valueToReturn
 			end
 		else
-			return cursor, db
+			return cursor
 		end
 	end
+	
+	table.foreach(db, print)
 	
 	return db
 end
@@ -412,30 +418,28 @@ function persist(engine, entity, id, obj)
 	t.id = obj.id
 	
 	local query
-	local isInsert = false
 	if ( t.id ) then
 		filters_fill_cosmo(t, { id = id })	
 		query = cosmo.fill(sql.UPDATE, t)
 		isUpdate = true
 	else
-		isInsert = true
 		query = cosmo.fill(sql.INSERT, t)
 	end
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local ok, data, dbengine = pcall(engine.db.exec, query)
+	local ok, data = pcall(engine.db.exec, query)
 	
-	if (isUpdate == true) then
+	if isUpdate then
 		return ok, data
 	end
 	
 	if ok then
-		if data and type(data) ~= "number" then
+		if data and type(data) == "table" then
 			--TODO: refresh object with other eventual database-generated values 
 			obj.id = data.id or obj.id 
-		elseif isInsert and not obj.id then
-			obj.id = dbengine:last_id()
+		elseif not isUpdate and not obj.id then
+			obj.id = engine.db.last_id()
 		end
 		
 		events.notify('after', 'persist', {engine=engine, entity=entity, id=id, obj=obj, data=data })

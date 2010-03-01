@@ -75,13 +75,17 @@ local engine = {
 			local result = {
 				{id=1, summary="test summary content", fulltext="test fulltext content"}
 			}
-		--print'----------------------------'
-		--print(sql)
-		--print'----------------------------'
+---		print'----------------------------'
+---		print("'"..sql.."'")
+---		print'----------------------------'
 			table.insert(queries, sql)
 			return function()
 				return table.remove(result, #result)
 			end 
+		end,
+		
+		last_id = function()
+			return 1
 		end
 	}
 } 
@@ -113,7 +117,7 @@ local obj = {
 provider.persist(engine, default.entities.info, nil, obj) 
 
 assert_last_query[[
-INSERT INTO T_Info (f_summary, f_fulltext, f_authorName) VALUES ('Resumo', 'Texto', 'autor' ); SELECT LAST_INSERT_ID() as id]]
+INSERT INTO T_Info (f_summary, f_fulltext, f_authorName) VALUES ('Resumo',  'Texto',  'autor' )]]
 
 assert(obj.id==1)
 
@@ -125,9 +129,7 @@ provider.persist(engine, default.entities.info, 1, {
 })
 
 assert_last_query[[
-UPDATE T_Info SET f_infoid=1, f_summary='Resumo', f_authorName='autor' WHERE id = 1
-]]
-
+UPDATE T_Info SET f_infoid=1, f_summary='Resumo', f_authorName='autor' WHERE (f_infoid = 1)]]
 
 local o = provider.retrieve(engine, default.entities.info, 1)
 
@@ -182,24 +184,91 @@ SELECT
 ]]
 
 
-os.exit()
 
 provider.search(engine, {
 	default.entities.info, 
-	title = 'aaaa',
-	authorName = { like = "b"},
-	id = 1,
-	state = {1, 2, 3, 4},
-	summary = { gt = "a" }
-	}) 
+	filters = {
+		title = {notnull=true},
+		authorName = { like = "a*"},
+		state = { gt = 3 }
+	}
+}) 
 
-print( provider.search(engine, default.entities.info, { 
-	
-	}) 
-)
+assert_last_query[[
+SELECT 
+ f_infoid as id, 
+ f_title as title, 
+ f_summary as summary, 
+ f_fulltext as `fulltext`, 
+ f_section as section, 
+ f_authorName as authorName, 
+ f_authorMail as authorMail, 
+ f_actor as actor, 
+ f_creatorActor as creatorActor, 
+ f_state as state
+FROM T_Info
+WHERE (f_state > 3 AND f_title IS NOT NULL AND f_authorName LIKE 'a%')  ]]
 
-print( provider.search(engine, default.entities.info, nil))
+provider.search(engine, { default.entities.info }) 
 
-print( provider.search(engine, default.entities.info, nil, { limit = 1, offset = 1 }) )
+assert_last_query[[
+SELECT 
+		 f_infoid as id, 
+		 f_title as title, 
+		 f_summary as summary, 
+		 f_fulltext as `fulltext`, 
+		 f_section as section, 
+		 f_authorName as authorName, 
+		 f_authorMail as authorMail, 
+		 f_actor as actor, 
+		 f_creatorActor as creatorActor, 
+		 f_state as state
+		FROM T_Info
+]]
 
-print( provider.search(engine, default.entities.info, nil, nil, {"title+", "-id", "+fulltext+"}) )
+provider.search(engine, { default.entities.info, pagination= {limit = 1, offset = 1 }}) 
+
+assert_last_query[[
+SELECT 
+		 f_infoid as id, 
+		 f_title as title, 
+		 f_summary as summary, 
+		 f_fulltext as `fulltext`, 
+		 f_section as section, 
+		 f_authorName as authorName, 
+		 f_authorMail as authorMail, 
+		 f_actor as actor, 
+		 f_creatorActor as creatorActor, 
+		 f_state as state
+		FROM T_Info
+		   LIMIT 1  OFFSET 1
+]]
+
+provider.search(engine, {default.entities.info, sorting={"title+", "-id", "+fulltext+"}}) 
+
+assert_last_query[[
+SELECT 
+		 f_infoid as id, 
+		 f_title as title, 
+		 f_summary as summary, 
+		 f_fulltext as `fulltext`, 
+		 f_section as section, 
+		 f_authorName as authorName, 
+		 f_authorMail as authorMail, 
+		 f_actor as actor, 
+		 f_creatorActor as creatorActor, 
+		 f_state as state
+		FROM T_Info
+		 ORDER BY title ASC, id DESC, `fulltext` ASC 
+]]
+
+provider.search(engine, {
+	default.entities.info, 	
+	filters = {
+		title = {notnull=true},
+		authorName = { like = "a*"},
+		state = { gt = 3 }
+	},
+	pagination= {limit = 1, offset = 1 }, 
+	sorting={"title+", "-id", "+fulltext+"}
+}) 
