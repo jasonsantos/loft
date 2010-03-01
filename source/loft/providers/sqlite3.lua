@@ -14,4 +14,9 @@ base.sql.INSERT = [[INSERT INTO $table_name ($data{", "}[=[$escape_field_name{$c
 
 base.field_types.key={type='INTEGER', primary=true, autoincrement=true, required=false, onEscape=tonumber}
 
+
+base.database_engine.get_last_id = function(connection)
+	return connection:getlastautoid()
+end
+
 return base
