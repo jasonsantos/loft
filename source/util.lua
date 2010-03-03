@@ -51,10 +51,11 @@ local indexed_table_mt = {
 		for _,v in ipairs(items) do
 			t[v]=true
 		end
+		return t
 	end
 }
 
-function indexed_table(t)
-	local t = t or {}
-	return setmetatable(t, indexed_table_mt)
+function indexed_table(o)
+	local t = setmetatable({}, indexed_table_mt)
+	return t(o or {})
 end
