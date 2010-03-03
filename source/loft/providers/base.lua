@@ -284,7 +284,7 @@ function database_engine.init(engine, connection_params)
 		local luasql_connect, err = luasql_connect or luasql[database_type]()
 		connection, err = luasql_connect:connect(unpack(connection_params))
 		
-		return connection
+		return connection, err
 	end  
 
 	db.close_connection = db.close_connection or function()
@@ -318,7 +318,8 @@ function database_engine.init(engine, connection_params)
 		--TODO: think about connection closing strategies
 		
 		local params = {...}
-		local connection = connection or assert(db.open_connection())
+		
+		local connection = connection or assert(db.open_connection(), "Não foi possível estabelecer conexão com a base de dados.")
 		
 		if not connection then
 			error('Connection to the database could not be established')
