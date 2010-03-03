@@ -1,6 +1,7 @@
-require "util"
-require "list"
-require "proxy"
+local util 		= require "util"
+local list 		= require "list"
+local proxy 	= require "proxy"
+local extract 	= require "loft.extract"
 
 module("loft",package.seeall)
 
@@ -336,6 +337,10 @@ engine_api=function(engine)
 			model[entity_name] = new_entity
 		end
 		return model
+	end
+	
+	function api.extract(options)
+		return extract.run(engine, options)
 	end
 
 	table.add(engine, api)
