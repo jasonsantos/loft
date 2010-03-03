@@ -1,7 +1,7 @@
-local cosmo = require 'cosmo'
-
 require'util'
 require'events'
+
+local cosmo = require 'cosmo'
 
 ----------------------------------------------
 -- Persistence Provider for the Loft Module
@@ -9,6 +9,8 @@ require'events'
 -- 
 
 module(..., package.seeall)
+
+database_engine = require 'loft.database'
 
 description = [[Generic Module for Database Behaviour]]
 
@@ -21,22 +23,6 @@ description = [[Generic Module for Database Behaviour]]
 --  interfaces, and you can extended them
 --  in your own providers 
 -----------------------------------------------
-
--- -------------- --
--- PROPERTIES
--- -------------- --
-
--- quotes
--- filters.like
--- filters.contains
--- escapes.quotes
--- escapes.new_lines
--- escapes.reserved_field_name
-
--- database_type 
--- reserved_words
--- field_types
--- sql
 
 -- -------------- --
 -- FUNCTIONS
@@ -52,6 +38,26 @@ description = [[Generic Module for Database Behaviour]]
 -- search(engine, options)
 -- count(engine, options)
 
+-- -------------- --
+-- BASE PROPERTIES
+-- -------------- --
+-- Providers that use SQL and extend Base can make use of
+-- these properties to extend behavior without rewritting
+-- the API functions  
+
+-- database_engine 
+
+-- quotes
+-- filters.like
+-- filters.contains
+-- escapes.quotes
+-- escapes.new_lines
+-- escapes.reserved_field_name
+
+-- database_type 
+-- reserved_words
+-- field_types
+-- sql
 
 
 -- ######################################### --
@@ -59,23 +65,10 @@ description = [[Generic Module for Database Behaviour]]
 -- ######################################### --
 --  this provider default options
 
-local indexed_table_mt = {
-	__newindex=function(t,k,v)
-		if not tonumber(k) then
-			table.insert(t, k)
-		end
-		rawset(t,k,v)
-	end,
-	__call=function(t,items)
-		for _,v in ipairs(items) do
-			t[v]=true
-		end
-	end
-}
 
 database_type = 'base'
 
-reserved_words = setmetatable({}, indexed_table_mt)
+reserved_words = util.indexed_table{}
  
 reserved_words {
 	'and',
@@ -112,7 +105,6 @@ escapes = {
 	
 }
 
----ToDo: Checar com o jason, a nova fun��o do escape_field_name
 local function contains_special_chars(s)
 	return string.find(s, '([^a-zA-Z0-9_])')~=nil
 end
@@ -167,11 +159,6 @@ CREATE TABLE IF NOT EXISTS $table_name (
 
 
 local passover_function = function(...) return ... end
-
-local field_type = function(field)
-	local field_type_name = field.type
-	return field_types[field_type_name] or {}
-end
 
 local table_fill_cosmo = function (engine, entity)
 	local t ={}
@@ -263,97 +250,7 @@ local filters_fill_cosmo = function (table_fill_cosmo, _filters)
 	end
 end
 
--- ######################################### --
---  DATABASE ENGINE
--- ######################################### --
 
-
-database_engine = {}
-
---- Initializes the database engine and its closure-controled state
-function database_engine.init(engine, connection_params)
-	local luasql, luasql_connect
-	local db = database_engine
-	local database_type = engine.options.database_type or database_type 
-	local connection
-	local cursors = {}
-	local insertions = {}
-	
-	db.open_connection = db.open_connection or function()
-		local luasql, err = luasql or require("luasql." .. database_type)
-		local luasql_connect, err = luasql_connect or luasql[database_type]()
-		connection, err = luasql_connect:connect(unpack(connection_params))
-		
-		return connection
-	end  
-
-	db.close_connection = db.close_connection or function()
-		local conn = connection
-		connection = nil
-		
-		for idx,c in ipairs(cursors) do
-			if c then
-				c:close();
-				cursors[idx]=nil
-			end
-		end
-		conn:close()
-	end  
-	
-	db.get_last_id = db.get_last_id or function(connection, ...)
-		return assert(connection:execute(string.format(sql.LASTID, ...)))
-	end
-
-	db.last_id = db.last_id or function(...)
-		local connection = connection or assert(db.open_connection())
-		
-		if not connection then
-			error('Connection to the database could not be established')
-		end
-		
-		return db.get_last_id(connection, ...) 
-	end
-
-	db.exec = db.exec or function(sql, ...)
-		--TODO: think about connection closing strategies
-		
-		local params = {...}
-		local connection = connection or assert(db.open_connection())
-		
-		if not connection then
-			error('Connection to the database could not be established')
-		end
-		
-		local cursor = assert(connection:execute(string.format(sql, ...)))
-		
-		if cursor and type(cursor)~='number' then
-			local n = #cursors+1
-			cursors[n]=cursor
-			
-			local value = cursor:fetch({},'a')
-			if not value then
-				cursor:close()
-				cursors[n] = nil
-			end
-
-			-- returns an iterator function
-			return function()
-				local valueToReturn = value
-				value = value and cursor:fetch({},'a')
-				if not value then
-					cursor:close()
-					cursors[n] = nil
-				end
-				
-				return valueToReturn
-			end
-		else
-			return cursor
-		end
-	end
-	
-	return db
-end
 
 -- ######################################### --
 --  PUBLIC API
@@ -516,16 +413,16 @@ end
 --					if ommited, function will return a list with everything it found
 -- @return 			array with every return value of the resultset, after treatment by the visitor 
 function search(engine, options)
-	local entity, _filters, pagination, sorting, visitorFunction =
+	local entity, filters, pagination, sorting, visitorFunction =
  		(options.entity or options[1]), options.filters, options.pagination, options.sorting, options.visitor
 	
-	local t = table_fill_cosmo(engine, entity)
+	local criteria = table_fill_cosmo(engine, entity)
 	
 	if ( type(pagination) == "table" and table.count(pagination) > 0) then
 		local limit = pagination.limit or pagination.top or options.page_size or engine.options.page_size
 		local offset = pagination.offset or (pagination.page and limit * (pagination.page - 1))
 		
-		t.pagination = {limit=limit, offset=offset}
+		criteria.pagination = {limit=limit, offset=offset}
 	end
 	
 	if ( type(sorting) == "table" and #sorting > 0 ) then
@@ -540,14 +437,14 @@ function search(engine, options)
 			end
 		end
 		
-		t.sorting = {}
-		t.sorting_concat = cosmo.make_concat( sortingcolumns )
+		criteria.sorting = {}
+		criteria.sorting_concat = cosmo.make_concat( sortingcolumns )
 		
 	end
 	
-	filters_fill_cosmo(t, _filters)
+	filters_fill_cosmo(criteria, filters)
 
-	local query = cosmo.fill(sql.SELECT, t)
+	local query = cosmo.fill(sql.SELECT, criteria)
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies

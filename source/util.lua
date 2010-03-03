@@ -1,3 +1,5 @@
+module(..., package.seeall)
+
 require 'lpeg'
 
 function table.copy(t)
@@ -36,4 +38,23 @@ function string.split(s, sep)
 	local elem = lpeg.C((1-sep)^0)
 	local p = elem * (sep * elem)^0
 	return lpeg.match(p, s)
+end
+
+local indexed_table_mt = {
+	__newindex=function(t,k,v)
+		if not tonumber(k) then
+			table.insert(t, k)
+		end
+		rawset(t,k,v)
+	end,
+	__call=function(t,items)
+		for _,v in ipairs(items) do
+			t[v]=true
+		end
+	end
+}
+
+function indexed_table(t)
+	local t = t or {}
+	return setmetatable(t, indexed_table_mt)
 end
