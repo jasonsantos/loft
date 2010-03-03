@@ -157,7 +157,11 @@ CREATE TABLE IF NOT EXISTS $table_name (
 	
 	DELETE = [==[DELETE FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==],
 	
-	LASTID = [==[SELECT LAST_INSERT_ID()]==]
+	LASTID = [==[SELECT LAST_INSERT_ID()]==],
+	
+	GET_TABLES = [==[SHOW TABLES]==],
+	
+	GET_DESCRIPTION = [==[DESCRIBE $table_name]==]
 	
 }
 
@@ -570,6 +574,71 @@ function search(engine, options)
 	end 
 end
 
+function get_tables(engine, options)
+	local query = cosmo.fill(sql.GET_TABLES, {})
+	--TODO: proper error handling
+	--TODO: think about query logging strategies
+	local ok, iter = pcall(engine.db.exec, query)
+	
+	if ok then
+		--TODO: implement resultset proxies using the list module
+		local results = {}
+		local row = iter() 
+		while row do
+			local i, value = next(row)
+			table.insert(results, value)
+			row = iter()
+		end
+		return results
+	else
+		return nil, iter
+	end
+end
+
+local function extract_type_in_description(type)
+	if (string.find(type, "%(")) then --discovery size in type
+		return string.match(type, "^([^(]-)%(([^)]-)%)")
+	else
+		return type
+	end
+end
+
+function convert_description_in_table(row)
+	local _type, size = extract_type_in_description(row.Type)
+	local t = {}
+	t.field = row.Field
+	t.primary = (row.Key == "PRI") and true or nil
+	t.required = (row.Null == "YES") and true or nil
+	t.type = string.upper(_type)
+	t.size = size or nil
+	t.autoincrement = (row.Extra == "auto_increment") and true or nil
+	return t
+end
+
+function get_description(engine, options)
+	local table_name = options.table_name
+	assert(table_name, "necessário informar o nome da tabela")
+	
+	local query = cosmo.fill(sql.GET_DESCRIPTION, {
+		table_name = table_name
+	})
+	--TODO: proper error handling
+	--TODO: think about query logging strategies
+	local ok, iter = pcall(engine.db.exec, query)
+	
+	if ok then
+		--TODO: implement resultset proxies using the list module
+		local results = {}
+		local row = iter() 
+		while row do
+			table.insert(results, convert_description_in_table(row))
+			row = iter()
+		end
+		return results
+	else
+		return nil, iter
+	end
+end
 -- count(engine, options)
 --- Gets the number of results of a given set of search options 
 -- @param engine the active Loft engine
