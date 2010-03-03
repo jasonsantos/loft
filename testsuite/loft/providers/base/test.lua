@@ -20,7 +20,7 @@ local default = schema.expand(function ()
 			title = { order=2, type = "text", size = 100, maxlength=250 },
 			summary=long_text{order=3},
 			fulltext=long_text(),							
-			section = text(),
+			section = belongs_to{'section'},
 			authorName = text(),
 			authorMail = text(),
 			actor = text(),
@@ -42,6 +42,7 @@ local default = schema.expand(function ()
 		fields = { 
 			id = { order = 1, colum_name = "F_SectionID", type = "key" },
 			name = { type = "text", size = 100, maxlength=250 },
+			infos = has_many{ 'info' }
 		},
 		handlers = {
 	        before_save = function(e, obj) print('!!!!!!!!') end,
@@ -75,9 +76,9 @@ local engine = {
 			local result = {
 				{id=1, summary="test summary content", fulltext="test fulltext content"}
 			}
----		print'----------------------------'
----		print("'"..sql.."'")
----		print'----------------------------'
+		print'----------------------------'
+		print("'"..sql.."'")
+		print'----------------------------'
 			table.insert(queries, sql)
 			return function()
 				return table.remove(result, #result)
@@ -98,7 +99,7 @@ CREATE TABLE IF NOT EXISTS T_Info (
   f_title VARCHAR(100),
   f_summary LONGTEXT,
   f_fulltext LONGTEXT,
-  f_section VARCHAR(255),
+  f_section_id BIGINT(8),
   f_authorName VARCHAR(255),
   f_authorMail VARCHAR(255),
   f_actor VARCHAR(255),
@@ -139,7 +140,7 @@ SELECT
 	f_title as title, 
 	f_summary as summary, 
 	f_fulltext as `fulltext`, 
-	f_section as section, 
+	f_section_id as section, 
 	f_authorName as authorName, 
 	f_authorMail as authorMail, 
 	f_actor as actor, 
@@ -173,7 +174,7 @@ SELECT
 	f_title as title, 
 	f_summary as summary, 
 	f_fulltext as `fulltext`, 
-	f_section as section, 
+	f_section_id as section, 
 	f_authorName as authorName, 
 	f_authorMail as authorMail, 
 	f_actor as actor, 
@@ -200,7 +201,7 @@ SELECT
  f_title as title, 
  f_summary as summary, 
  f_fulltext as `fulltext`, 
- f_section as section, 
+ f_section_id as section, 
  f_authorName as authorName, 
  f_authorMail as authorMail, 
  f_actor as actor, 
@@ -217,7 +218,7 @@ SELECT
 		 f_title as title, 
 		 f_summary as summary, 
 		 f_fulltext as `fulltext`, 
-		 f_section as section, 
+		 f_section_id as section, 
 		 f_authorName as authorName, 
 		 f_authorMail as authorMail, 
 		 f_actor as actor, 
@@ -234,7 +235,7 @@ SELECT
 		 f_title as title, 
 		 f_summary as summary, 
 		 f_fulltext as `fulltext`, 
-		 f_section as section, 
+		 f_section_id as section, 
 		 f_authorName as authorName, 
 		 f_authorMail as authorMail, 
 		 f_actor as actor, 
@@ -252,7 +253,7 @@ SELECT
 		 f_title as title, 
 		 f_summary as summary, 
 		 f_fulltext as `fulltext`, 
-		 f_section as section, 
+		 f_section_id as section, 
 		 f_authorName as authorName, 
 		 f_authorMail as authorMail, 
 		 f_actor as actor, 
@@ -272,3 +273,73 @@ provider.search(engine, {
 	pagination= {limit = 1, offset = 1 }, 
 	sorting={"title+", "-id", "+fulltext+"}
 }) 
+
+assert_last_query[[
+SELECT 
+   f_infoid as id, 
+   f_title as title, 
+   f_summary as summary, 
+   f_fulltext as `fulltext`, 
+   f_section_id as section, 
+   f_authorName as authorName, 
+   f_authorMail as authorMail, 
+   f_actor as actor, 
+   f_creatorActor as creatorActor, 
+   f_state as state
+  FROM T_Info
+  WHERE (f_state > 3 AND f_title IS NOT NULL AND f_authorName LIKE 'a%') ORDER BY title ASC, id DESC, `fulltext` ASC  LIMIT 1  OFFSET 1
+]]
+
+provider.search(engine, {
+	default.entities.info,
+	exclude_fields = {
+		'title','summary', 'fulltext'
+	}, 	
+	filters = {
+		title = {notnull=true},
+		fulltext = { contains = "*shake*"},
+	},
+	sorting={"title+"}
+}) 
+
+assert_last_query[[
+SELECT 
+   f_infoid as id, 
+   f_section_id as section, 
+   f_authorName as authorName, 
+   f_authorMail as authorMail, 
+   f_actor as actor, 
+   f_creatorActor as creatorActor, 
+   f_state as state
+  FROM T_Info
+  WHERE (f_title IS NOT NULL AND CONTAINS(f_fulltext, '*shake*')) ORDER BY title ASC
+]]
+
+provider.search(engine, {
+	default.entities.info,
+	include_fields = {
+		'id','title'
+	}, 	
+	filters = {
+		state = { 1, 2 },
+	},
+	sorting={"title+"}
+}) 
+
+assert_last_query[[
+SELECT 
+   f_infoid as id, 
+   f_title as title
+  FROM T_Info
+  WHERE (f_state IN (1, 2)) ORDER BY title ASC
+]]
+
+provider.create(engine, default.entities.section)
+
+assert_last_query[[
+CREATE TABLE IF NOT EXISTS section ( 
+  f_id BIGINT(8) PRIMARY KEY NOT NULL AUTO_INCREMENT, 
+f_name VARCHAR(100)
+)
+]]
+

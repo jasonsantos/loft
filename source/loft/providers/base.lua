@@ -126,6 +126,9 @@ field_types = {
 	long_text={type='LONGTEXT', onEscape=string_literal},
 	timestamp={type='DATETIME'}, 
 	boolean={type='BOOLEAN'},
+	
+	has_one={type='BIGINT', size='8', onEscape=tonumber},
+	belongs_to={type='BIGINT', size='8', onEscape=tonumber},
 }
 
 --  ]=]
@@ -160,34 +163,14 @@ CREATE TABLE IF NOT EXISTS $table_name (
 
 local passover_function = function(...) return ... end
 
-local table_fill_cosmo = function (engine, entity)
-	local t ={}
-	
-	t.table_name = entity['table_name'] or entity['name']
+local table_fill_cosmo = function (query)
+	local t = query or {}
 	
 	if ( not t.table_name ) then
 		error("Entity must have a  `name` or `table_name`.")
 	end
 	
-	local columns = {}
-	
-	for field_name, field in pairs(entity.fields) do
-		local field_type = field_types[field.type] or {}
-		local column = table.merge(field_type, field)
-		
-		column.name = field.column_name
-		column.alias = field_name
-		column.order = field.order or 999
-		column.type = field_type.type
-		columns[field_name] = column 
-		
-		table.insert(columns, columns[field_name])
-	end
-	table.sort(columns, function(f1,f2) return f1.name < f2.name end)
-	table.sort(columns, function(f1,f2) return f1.order < f2.order end)
-	
-	t.__columns = columns
-	t.columns = cosmo.make_concat( columns )
+	t.columns = cosmo.make_concat( t.__fields )
 	
 	t['string_literal'] = function (arg) 
 		return string_literal(arg[1])
@@ -250,7 +233,85 @@ local filters_fill_cosmo = function (table_fill_cosmo, _filters)
 	end
 end
 
+local criteria_mt = {
+	__index = {
+		add_columns = function(criteria, fields)
+			for field_name,field in pairs(fields) do
+				criteria:add_column(field_name,field)
+			end
+			return criteria
+		end, 
+		add_column = function(criteria, field_name, field)
+			local field_type = field_types[field.type] or {}
+			local column = table.merge(field_type, field)
+			
+			column.name = field.column_name
+			column.alias = field_name
+			column.order = field.order or 999
+			column.type = field_type.type
+			
+			criteria.__columns[field_name] = column 
+			
+			table.insert(criteria.__columns, criteria.__columns[field_name])
+			
+			return criteria
+		end,
+		add_field = function(criteria, field_name, field)
+			
+			if field then
+				criteria:add_column(field_name, field)
+			end
+			
+			criteria.__fields[field_name] = criteria.__columns[field_name]
+			table.insert(criteria.__fields, criteria.__columns[field_name])
+			
+			return criteria
+		end,
+		sort_fields = function(criteria, fn)
+			table.sort(criteria.__columns, fn)
+			table.sort(criteria.__fields, fn)
+			return criteria
+		end,
+		include_fields = function(criteria, fields)
+			criteria.__include_fields(fields)
+			return criteria			
+		end,
+		exclude_fields = function(criteria, fields)
+			criteria.__exclude_fields(fields)
+			return criteria			
+		end,
+	}
+}
 
+--- Creates a criteria table from an entity
+-- this function is executed when a search is preparing
+-- the SQL will be generated from the resulting table 
+function create_query(engine, entity, include_fields, exclude_fields)
+	local criteria =setmetatable({}, criteria_mt)
+	criteria.__entity = entity;
+	criteria.__columns = {};
+	criteria.__fields = {};
+	
+	criteria.__include_fields = util.indexed_table(include_fields or {})
+	criteria.__exclude_fields = util.indexed_table(exclude_fields or {})
+	
+	criteria.table_name = entity['table_name'] or entity['name']
+	
+	for field_name, field in pairs(entity.fields) do
+		if not field.virtual and field.column_name then
+			if not criteria.__exclude_fields[field_name] and ((not include_fields) or criteria.__include_fields[field_name]) then
+				criteria:add_field(field_name, field)
+			else
+				criteria:add_column(field_name, field)
+			end
+		end
+	end
+	
+	criteria:sort_fields(function(f1,f2) return f1.name < f2.name end)
+	criteria:sort_fields(function(f1,f2) return f1.order < f2.order end)
+	
+	return criteria
+end
 
 -- ######################################### --
 --  PUBLIC API
@@ -282,7 +343,7 @@ end
 -- otherwise, generates an insert statement
 -- @param engine the active Loft engine
 function persist(engine, entity, id, obj)
-	local t = table_fill_cosmo(engine, entity)
+	local query = create_query(engine, entity)
 	obj.id = id or obj.id
 	local data = {}
 	local t_required = {}
@@ -291,7 +352,7 @@ function persist(engine, entity, id, obj)
 	events.notify('before', 'persist', {engine=engine, entity=entity, id=id, obj=obj})
 	
 	-- Checking if every required field is present
-	for i, column in ipairs(t.__columns) do
+	for i, column in ipairs(query.__columns) do
 		
 		if ( column.required ) then 
 			if ( not obj[ column.alias ] and column.alias ~= 'id') then
@@ -313,21 +374,22 @@ function persist(engine, entity, id, obj)
 		error("The following fields are absent (" .. table.concat(t_required, ',') .. ")")
 	end
 	
+	local t = table_fill_cosmo(query)
 	t.data = cosmo.make_concat( data )
 	t.id = obj.id
 	
-	local query
+	local sql_str
 	if ( t.id ) then
 		filters_fill_cosmo(t, { id = id })	
-		query = cosmo.fill(sql.UPDATE, t)
+		sql_str = cosmo.fill(sql.UPDATE, t)
 		isUpdate = true
 	else
-		query = cosmo.fill(sql.INSERT, t)
+		sql_str = cosmo.fill(sql.INSERT, t)
 	end
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local ok, data = pcall(engine.db.exec, query)
+	local ok, data = pcall(engine.db.exec, sql_str)
 	
 	if isUpdate then
 		return ok, data
@@ -352,12 +414,12 @@ function persist(engine, entity, id, obj)
 end
 
 function create(engine, entity)
-	local t = table_fill_cosmo(engine, entity)
-	local query = cosmo.fill(sql.CREATE, t)
+	local query = create_query(engine, entity)
+	local sql_str = cosmo.fill(sql.CREATE, table_fill_cosmo(query))
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
 	
-	return pcall(engine.db.exec, query)
+	return pcall(engine.db.exec, sql_str)
 end
 
 --- Eliminates a record  from the persistence that corresponds to the given id 
@@ -366,14 +428,15 @@ end
 -- @param id identifier of the object to remove
 -- @param obj the object itself
 function delete(engine, entity, id, obj)	
-	local t = table_fill_cosmo(engine, entity)	
+	local query = create_query(engine, entity)
+	local t = table_fill_cosmo(query)	
 	filters_fill_cosmo(t, { id = id })	
 	
-	local query = cosmo.fill(sql.DELETE, t)
+	local sql_str = cosmo.fill(sql.DELETE, t)
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	return pcall(engine.db.exec, query)
+	return pcall(engine.db.exec, sql_str)
 end
 
 -- retrieve(engine, entity, id)
@@ -384,14 +447,15 @@ end
 -- @param id identifier of the object to load
 -- @return object of the given type corresponding to Id or nil
 function retrieve(engine, entity, id)
-	local t = table_fill_cosmo(engine, entity)	
+	local query = create_query(engine, entity)
+	local t = table_fill_cosmo(query)	
 	filters_fill_cosmo(t, { id = id })	
 
-	local query = cosmo.fill(sql.SELECT, t)
+	local sql_str = cosmo.fill(sql.SELECT, t)
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local ok, iter = pcall(engine.db.exec, query)
+	local ok, iter = pcall(engine.db.exec, sql_str)
 	
 	if iter then
 		return iter()
@@ -416,7 +480,7 @@ function search(engine, options)
 	local entity, filters, pagination, sorting, visitorFunction =
  		(options.entity or options[1]), options.filters, options.pagination, options.sorting, options.visitor
 	
-	local criteria = table_fill_cosmo(engine, entity)
+	local criteria = create_query(engine, entity, options.include_fields, options.exclude_fields)
 	
 	if ( type(pagination) == "table" and table.count(pagination) > 0) then
 		local limit = pagination.limit or pagination.top or options.page_size or engine.options.page_size
@@ -443,12 +507,13 @@ function search(engine, options)
 	end
 	
 	filters_fill_cosmo(criteria, filters)
+	local t = table_fill_cosmo(criteria)	
 
-	local query = cosmo.fill(sql.SELECT, criteria)
+	local sql_str = cosmo.fill(sql.SELECT, t)
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local ok, iter = pcall(engine.db.exec, query)
+	local ok, iter = pcall(engine.db.exec, sql_str)
 	
 	if ok then
 		--TODO: implement resultset proxies using the list module
@@ -482,9 +547,9 @@ function count(engine, options)
 	
 	filters_fill_cosmo(t, _filters)
 	t.columns = cosmo.make_concat( { { func = 'COUNT(*)', alias = 'count' }} )
-	local query = cosmo.fill(sql.SELECT, t)
+	local sql_str = cosmo.fill(sql.SELECT, t)
 	
-	local ok, iter_num = pcall(engine.db.exec, query)
+	local ok, iter_num = pcall(engine.db.exec, sql_str)
 	
 	if ok then
 		--TODO: implement resultset proxies using the list module
