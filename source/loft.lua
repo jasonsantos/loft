@@ -38,6 +38,7 @@ local engine_api
 --			port (number) port for the database connection
 -- 
 -- 			forced_deletions (boolean) always force deletions for dirty objects
+--			page_size (number) number of items on a page to use with engine.find
 --
 -- @see configure
 function engine(opts)
