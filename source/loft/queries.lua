@@ -108,16 +108,12 @@ local function create_condition(criteria, field_name, field_condition)
 	else
 		right_side = field_condition
 		if type(field_condition)=='table' then
-			print('www')
 			local op,c = next(field_condition) 
 			if type(c)=='table' and c.field then
-				print('XXX', c.field)
 				local column = create_column(criteria, c.field)
 				table.foreach(column, print)
-				print('YYY')
 				right_side[op] = table.merge(right_side, column)
 				table.foreach(right_side, print)
-				print('ZZZ')
 			end
 		end
 	end
