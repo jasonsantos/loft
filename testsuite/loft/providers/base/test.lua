@@ -42,6 +42,7 @@ local default = schema.expand(function ()
 		fields = { 
 			id = { order = 1, colum_name = "F_SectionID", type = "key" },
 			name = { type = "text", size = 100, maxlength=250 },
+			tag = { type = "text", size = 100, maxlength=250 },
 			infos = has_many{ 'info' }
 		},
 		handlers = {
@@ -343,4 +344,33 @@ CREATE TABLE IF NOT EXISTS section (
 f_name VARCHAR(100)
 )
 ]]
+
+
+provider.search(engine, {
+	default.entities.info,
+	include_fields = {
+		'id'
+	}, 	
+	filters = {
+		state = {eq={field='id'}},
+	}
+}) 
+
+assert_last_query[[
+SELECT 
+   f_infoid as id
+  FROM T_Info
+  WHERE (f_state = f_infoid) 
+]]
+
+
+provider.search(engine, {
+	default.entities.info,
+	include_fields = {
+		'id'
+	}, 	
+	filters = {
+		section_name = 'teste',
+	}
+}) 
 

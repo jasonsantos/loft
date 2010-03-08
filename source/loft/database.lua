@@ -8,7 +8,7 @@ module(..., package.seeall)
 function init(engine, connection_params)
 	local luasql, luasql_connect
 	local db = _M
-	local database_type = engine.options.database_type or database_type 
+	local database_type = engine.options.database_type or engine.provider.database_type or engine.options.provider
 	local connection
 	local cursors = {}
 	local insertions = {}

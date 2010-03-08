@@ -1,4 +1,4 @@
-package.path = package.path .. ';../../../source/?.lua'
+package.path = package.path .. ';../../../../source/?.lua'
 local loft = require 'loft'
 local schema = require 'schema'
 

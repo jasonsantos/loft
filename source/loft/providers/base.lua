@@ -169,6 +169,21 @@ CREATE TABLE IF NOT EXISTS $table_name (
 
 local passover_function = function(...) return ... end
 
+
+local render_engine = {
+	render_field_name = function(name)
+	end,
+	render_filters = function(conditions)
+	end,
+	render_condition = function(lside, op, rside)
+		return tostring(lside)..tostring(op)..tostring(rside)
+	end,
+	prepare = function(query)
+	end,
+	render = function(query)
+	end,
+}
+
 local table_fill_cosmo = function (query)
 	local t = query or {}
 	
@@ -194,49 +209,74 @@ local table_fill_cosmo = function (query)
 	return t
 end
 
-local filters_fill_cosmo = function (table_fill_cosmo, _filters)
-	local t = table_fill_cosmo
-	if ( type(_filters) == "table" and next(_filters)) then
-		local lines = {}
+local render_field_name = function(criteria, field)
+	if type(field)=='string' then
+		return field
+	else
+		assert(field.column_name, "Invalid field on criteria")
+		return (field.entity_name and (field.entity_name .. '.') or '') .. field.column_name
+	end
+end
+
+local filters_fill_cosmo = function (criteria, _filters)
+	local provider = criteria:get_provider()
+	--TODO: add support for OR clauses and complex conditions
+	local _, conditions = criteria:conditions(_filters)
+	
+	local result = {};
+
+	for _, condition in ipairs(conditions) do
+		local left_side = condition.left_side
+		local right_side = condition.right_side
 		
-		for name, val in pairs(_filters) do
-			local col = t.__columns[name]
-			
-			if (not col) then error(name .. " not present in entity") end
-			local name = col.name
-			local fn = col.onEscape or passoverFunction
-						
-			if type(val)=='string' or type(val)=='number' then
-				table.insert(lines, col.column_name .. ' = ' .. fn(val))
-			elseif type(val)=='table' then
-				if #val>1 then
-					local cp_val = table.copy(val)
-					for i, v in ipairs(cp_val) do
-						cp_val[i] = fn(v)
-					end
-					table.insert(lines, col.column_name .. ' IN (' .. table.concat(cp_val, ', ') .. ')')
-				elseif val.contains then
-					table.insert(lines, filters.contains(col.column_name, fn(val.contains)))
-				elseif val.like then
-					table.insert(lines, col.column_name .. ' LIKE ' .. fn(filters.like(val.like)) )
-				elseif val.lt then
-					table.insert(lines, col.column_name .. ' < ' .. fn(val.lt))
-				elseif val.gt then
-					table.insert(lines, col.column_name .. ' > ' .. fn(val.gt))
-				elseif val.le then
-					table.insert(lines, col.column_name .. ' <= ' .. fn(val.le))
-				elseif val.ge then
-					table.insert(lines, col.column_name .. ' >= ' .. fn(val.ge))
-				elseif val.null then
-					table.insert(lines, col.column_name .. ' IS NULL')
-				elseif val.notnull then
-					table.insert(lines, col.column_name .. ' IS NOT NULL')
+		local escape_function = left_side.onEscape or passover_function
+		local fn = function(v)
+			if type(v)=='table' then 
+				return render_field_name(criteria, v)
+			else
+				return escape_function(v)
+			end 
+		end
+		
+		local lside = render_field_name(criteria, left_side)
+		local op, rside
+					
+		if right_side.type == 'simple' then
+			op, rside = ' = ', fn(right_side.value)
+		elseif type(right_side)=='table' then
+
+			if right_side.type=='set' then
+				local copied_items = table.copy(right_side.value)
+				for i, v in ipairs(copied_items) do
+					copied_items[i] = fn(v)
 				end
+				op, rside = ' IN ', '(' .. table.concat(copied_items, ', ') .. ')'
+			elseif right_side.contains then
+				lside, op, rside = '', '', filters.contains(lside, fn(right_side.contains))
+			elseif right_side.like then
+				op, rside = ' LIKE ', fn(filters.like(right_side.like))
+			elseif right_side.eq then
+				op, rside = ' = ', fn(right_side.eq)
+			elseif right_side.lt then
+				op, rside = ' < ', fn(right_side.lt)
+			elseif right_side.gt then
+				op, rside = ' > ', fn(right_side.gt)
+			elseif right_side.le then
+				op, rside = ' <= ', fn(right_side.le)
+			elseif right_side.ge then
+				op, rside = ' >= ', fn(right_side.ge)
+			elseif right_side.null then
+				op, rside = ' IS ', 'NULL'
+			elseif right_side.notnull then
+				op, rside = ' IS ', 'NOT NULL'
 			end
 		end
-		t.filters = {}
-		t.filters_concat = cosmo.make_concat( lines )
+		table.insert(result, render_engine.render_condition(lside, op, rside))
 	end
+	if next(result) then
+		criteria.filters = {}
+	end
+	criteria.filters_concat = cosmo.make_concat( result )
 end
 
 
@@ -300,7 +340,7 @@ function persist(engine, entity, id, obj)
 	end
 	
 	if ( #t_required > 0 ) then		
-		error("The following fields are absent (" .. table.concat(t_required, ',') .. ")")
+		error("The following required fields are absent (" .. table.concat(t_required, ',') .. ")")
 	end
 	
 	local t = table_fill_cosmo(query)

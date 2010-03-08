@@ -329,13 +329,20 @@ engine_api=function(engine)
 	-- entities  and objects will receive Loft methods
 	function api.decorate(schema, options)
 		local model = {}
+		
 		for entity_name,inner_entity in pairs(schema.entities) do
+			
 			local new_entity = {}
-			for function_name, fn in pairs(api) do
+			
+			for function_name, _ in pairs(api) do
 				new_entity[function_name] = api_function(inner_entity, function_name, new_entity)
 			end
+			
 			model[entity_name] = new_entity
 		end
+		
+		engine.schema = schema
+		
 		return model
 	end
 	
