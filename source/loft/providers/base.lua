@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS $table_name (
 	
 	GET_TABLES = [==[SHOW TABLES]==],
 	
-	GET_DESCRIPTION = [==[DESCRIBE $table_name]==]
+	GET_TABLE_DESCRIPTION = [==[DESCRIBE $table_name]==]
 	
 }
 
@@ -386,7 +386,7 @@ function retrieve(engine, entity, id)
 	--TODO: think about query logging strategies
 	local ok, iter = pcall(engine.db.exec, sql_str)
 	
-	if iter then
+	if ok then
 		return iter()
 	else
 		return nil, iter
@@ -503,9 +503,9 @@ end
 
 function get_description(engine, options)
 	local table_name = options.table_name
-	assert(table_name, "necessário informar o nome da tabela")
+	assert(table_name, "you need to inform a table name")
 	
-	local query = cosmo.fill(sql.GET_DESCRIPTION, {
+	local query = cosmo.fill(sql.GET_TABLE_DESCRIPTION, {
 		table_name = table_name
 	})
 	--TODO: proper error handling

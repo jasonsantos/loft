@@ -4,17 +4,17 @@ run = function (engine, options)
 	local provider = engine.provider
 	
 	local cache_type = {}
-	local convert_typebd_in_typeloft = function (type)
-		if (cache_type[type]) then
-			return cache_type[type]
+	local convert_to_loft_type = function (type_name)
+		if (cache_type[type_name]) then
+			return cache_type[type_name]
 		end
-		for typeloft, t in pairs(provider.field_types) do
-			if (t.type == type) then
-				cache_type[type] = typeloft
-				return cache_type[type]
+		for loft_type, t in pairs(provider.field_types) do
+			if (t.type == type_name) then
+				cache_type[type_name] = loft_type
+				return cache_type[type_name]
 			end
 		end
-		error("Não foi encontrado um tipo equivalente em loft " .. type)
+		error("Unexpected type: " .. type)
 	end
 	
 	local hook_regexp = {
@@ -34,7 +34,7 @@ run = function (engine, options)
 					value = string.gsub(value, string.format(regexp, hook), "")
 				end
 				if (not value or value == "") then
-					error("O hook " .. hook_name .. " precisa retornar algum valor.")
+					error("The Hook '" .. hook_name .. "' needs to return a non-empty value.")
 				end
 			end
 		end
@@ -63,7 +63,7 @@ run = function (engine, options)
 			table.insert(t_result, "	fields = {")
 	
 			for order, t_field in ipairs( fields ) do
-				local type = convert_typebd_in_typeloft(t_field.type)
+				local type = convert_to_loft_type(t_field.type)
 				local real_field = t_field.field
 				local field = apply_hook(real_field, "column")
 				
