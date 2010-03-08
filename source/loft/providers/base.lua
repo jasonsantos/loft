@@ -1,6 +1,8 @@
 require'util'
 require'events'
 
+local query = require'loft.queries'
+
 local cosmo = require 'cosmo'
 
 ----------------------------------------------
@@ -237,85 +239,6 @@ local filters_fill_cosmo = function (table_fill_cosmo, _filters)
 	end
 end
 
-local criteria_mt = {
-	__index = {
-		add_columns = function(criteria, fields)
-			for field_name,field in pairs(fields) do
-				criteria:add_column(field_name,field)
-			end
-			return criteria
-		end, 
-		add_column = function(criteria, field_name, field)
-			local field_type = field_types[field.type] or {}
-			local column = table.merge(field_type, field)
-			
-			column.name = field.column_name
-			column.alias = field_name
-			column.order = field.order or 999
-			column.type = field_type.type
-			
-			criteria.__columns[field_name] = column 
-			
-			table.insert(criteria.__columns, criteria.__columns[field_name])
-			
-			return criteria
-		end,
-		add_field = function(criteria, field_name, field)
-			
-			if field then
-				criteria:add_column(field_name, field)
-			end
-			
-			criteria.__fields[field_name] = criteria.__columns[field_name]
-			table.insert(criteria.__fields, criteria.__columns[field_name])
-			
-			return criteria
-		end,
-		sort_fields = function(criteria, fn)
-			table.sort(criteria.__columns, fn)
-			table.sort(criteria.__fields, fn)
-			return criteria
-		end,
-		include_fields = function(criteria, fields)
-			criteria.__include_fields(fields)
-			return criteria			
-		end,
-		exclude_fields = function(criteria, fields)
-			criteria.__exclude_fields(fields)
-			return criteria			
-		end,
-	}
-}
-
---- Creates a criteria table from an entity
--- this function is executed when a search is preparing
--- the SQL will be generated from the resulting table 
-function create_query(engine, entity, include_fields, exclude_fields)
-	local criteria =setmetatable({}, criteria_mt)
-	criteria.__entity = entity;
-	criteria.__columns = {};
-	criteria.__fields = {};
-	
-	criteria.__include_fields = util.indexed_table(include_fields or {})
-	criteria.__exclude_fields = util.indexed_table(exclude_fields or {})
-	
-	criteria.table_name = entity['table_name'] or entity['name']
-	
-	for field_name, field in pairs(entity.fields) do
-		if not field.virtual and field.column_name then
-			if not criteria.__exclude_fields[field_name] and ((not include_fields) or criteria.__include_fields[field_name]) then
-				criteria:add_field(field_name, field)
-			else
-				criteria:add_column(field_name, field)
-			end
-		end
-	end
-	
-	criteria:sort_fields(function(f1,f2) return f1.name < f2.name end)
-	criteria:sort_fields(function(f1,f2) return f1.order < f2.order end)
-	
-	return criteria
-end
 
 -- ######################################### --
 --  PUBLIC API
@@ -337,7 +260,9 @@ function setup(engine)
 		engine.options.port,
 	}
 
-	engine.db = database_engine.init(engine, engine.options.connection_table)	
+	engine.db = database_engine.init(engine, engine.options.connection_table)
+	
+	engine.provider = _M
 
 	return engine
 end
@@ -347,7 +272,7 @@ end
 -- otherwise, generates an insert statement
 -- @param engine the active Loft engine
 function persist(engine, entity, id, obj)
-	local query = create_query(engine, entity)
+	local query = query.create(engine, entity)
 	obj.id = id or obj.id
 	local data = {}
 	local t_required = {}
@@ -418,7 +343,7 @@ function persist(engine, entity, id, obj)
 end
 
 function create(engine, entity)
-	local query = create_query(engine, entity)
+	local query = query.create(engine, entity)
 	local sql_str = cosmo.fill(sql.CREATE, table_fill_cosmo(query))
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
@@ -432,7 +357,7 @@ end
 -- @param id identifier of the object to remove
 -- @param obj the object itself
 function delete(engine, entity, id, obj)	
-	local query = create_query(engine, entity)
+	local query = query.create(engine, entity)
 	local t = table_fill_cosmo(query)	
 	filters_fill_cosmo(t, { id = id })	
 	
@@ -451,7 +376,7 @@ end
 -- @param id identifier of the object to load
 -- @return object of the given type corresponding to Id or nil
 function retrieve(engine, entity, id)
-	local query = create_query(engine, entity)
+	local query = query.create(engine, entity)
 	local t = table_fill_cosmo(query)	
 	filters_fill_cosmo(t, { id = id })	
 
@@ -484,7 +409,7 @@ function search(engine, options)
 	local entity, filters, pagination, sorting, visitorFunction =
  		(options.entity or options[1]), options.filters, options.pagination, options.sorting, options.visitor
 	
-	local criteria = create_query(engine, entity, options.include_fields, options.exclude_fields)
+	local criteria = query.create(engine, entity, options.include_fields, options.exclude_fields)
 	
 	if ( type(pagination) == "table" and table.count(pagination) > 0) then
 		local limit = pagination.limit or pagination.top or options.page_size or engine.options.page_size
@@ -612,7 +537,7 @@ function count(engine, options)
  	local entity, _filters, pagination, sorting, visitorFunction =
  		options.entity, options.filters, options.pagination, options.sorting, options.visitor
  		
-	local t = table_fill_cosmo( create_query(engine, entity) )
+	local t = table_fill_cosmo( query.create(engine, entity) )
 	
 	filters_fill_cosmo(t, _filters)
 	t.columns = cosmo.make_concat( { { func = 'COUNT(*)', alias = 'count' }} )

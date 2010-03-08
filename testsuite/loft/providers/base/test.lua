@@ -71,6 +71,7 @@ local function assert_last_query(sql)
 end
 
 local engine = {
+	provider = provider,
 	db = {
 		exec = function(sql)
 			local result = {
