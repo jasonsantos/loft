@@ -1,9 +1,9 @@
-package.path = package.path .. ';../../../../source/?.lua'
+package.path = package.path .. ';../../source/?.lua'
 local loft = require 'loft'
 local schema = require 'schema'
 
 local loft_instance = loft.engine({
-	database = "test.sqlite3",
+	database = "sqlite3.test.db",
 	database_type = "sqlite3",
 	provider = "sqlite3"
 })
