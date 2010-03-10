@@ -158,8 +158,51 @@ CREATE TABLE IF NOT EXISTS $table_name (
 	
 	GET_TABLES = [==[SHOW TABLES]==],
 	
-	GET_TABLE_DESCRIPTION = [==[DESCRIBE $table_name]==]
+	GET_TABLE_DESCRIPTION = [==[DESCRIBE $table_name]==],
 	
+	IN = ' IN ',
+	IS = ' IS ',
+	LIKE = ' LIKE ',
+	EQ = ' = ',
+	LT = ' < ',
+	GT = ' > ',
+	GE = ' >= ',
+	ISNULL = ' IS NULL',
+	ISNOTNULL = ' IS NOT NULL',
+	
+	set = function(items)
+		local content = type(items)=='table' and table.concat(items, ', ') or tostring(items) 
+		return '('..content..')'
+	end,
+	
+	field_name = function(query, field)
+		if type(field)=='string' then
+			return field
+		else
+			assert(field.column_name, "Invalid field on criteria")
+			return (query.from_alias and (field.entity_name .. '.') or '') .. field.column_name
+		end
+	end,
+
+	filters = function(query, filters)
+		--TODO: add support for OR clauses and more complex conditions
+		local _, conditions = query:conditions(filters or {})
+		
+		local result = query:render_conditions(conditions)
+
+		if next(result) then
+			query.filters = {}
+		end
+		query.filters_concat = cosmo.make_concat( result )
+	end,
+
+	condition = function(query, lside, op, rside)
+		return tostring(lside)..tostring(op)..tostring(rside)
+	end,
+	
+	join_conditions = function(list)
+		return table.concat(list, ' AND ')
+	end	
 }
 
 -- ######################################### --
@@ -171,53 +214,9 @@ local passover_function = function(...) return ... end
 
 
 render_engine = {
-	templates = {
-		IN = ' IN ',
-		IS = ' IS ',
-		LIKE = ' LIKE ',
-		EQ = ' = ',
-		LT = ' < ',
-		GT = ' > ',
-		GE = ' >= ',
-		ISNULL = ' IS NULL',
-		ISNOTNULL = ' IS NOT NULL',
-		
-		set = function(items)
-			local content = type(items)=='table' and table.concat(items, ', ') or tostring(items) 
-			return '('..content..')'
-		end,
-		
-		field_name = function(query, field)
-			if type(field)=='string' then
-				return field
-			else
-				assert(field.column_name, "Invalid field on criteria")
-				return (query.from_alias and (field.entity_name .. '.') or '') .. field.column_name
-			end
-		end,
-
-		filters = function(query, filters)
-			--TODO: add support for OR clauses and more complex conditions
-			local _, conditions = query:conditions(filters or {})
-			
-			local result = query:render_conditions(conditions)
-
-			if next(result) then
-				query.filters = {}
-			end
-			query.filters_concat = cosmo.make_concat( result )
-		end,
-
-		condition = function(query, lside, op, rside)
-			return tostring(lside)..tostring(op)..tostring(rside)
-		end,
-		
-		join_conditions = function(list)
-			return table.concat(list, ' AND ')
-		end
-	},
+	templates = sql,
 	
-	prepare = function(query)
+	prepare = function(query, filters)
 		query:render_engine(render_engine)
 		
 		if ( not query.table_name and not query.name ) then
@@ -239,10 +238,11 @@ render_engine = {
 		   cosmo.yield(arg)
 		end
 		
+		if filters then
+			render_engine.templates.filters(query, filters)
+		end
+		
 		return query
-	end,
-	
-	render = function(query)
 	end,
 }
 
