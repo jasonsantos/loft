@@ -357,13 +357,13 @@ function persist(engine, entity, id, obj)
 	end 
 end
 
-function create(engine, entity)
+function create(engine, entity, do_not_execute)
 	local query = query.create(engine, entity)
 	local sql_str = cosmo.fill(sql.CREATE, table_fill_cosmo(query))
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
 	
-	return pcall(engine.db.exec, sql_str)
+	return do_not_execute and sql_str or pcall(engine.db.exec, sql_str)
 end
 
 --- Eliminates a record  from the persistence that corresponds to the given id 
