@@ -39,26 +39,39 @@ function create(engine, entity, include_fields, exclude_fields)
 	return criteria
 end
 
-function api.get_entity(criteria)
-	return criteria.__entity;
+local function standard_getter_setter(criteria, name, value)
+	if not value then
+		return criteria['__'..name];
+	end
+	
+	criteria['__'..name] = value
+	
+	return criteria
 end
 
-function api.get_engine(criteria)
-	return criteria.__engine;
+function api.entity(criteria, entity)
+	return standard_getter_setter(criteria, 'entity', entity)
 end
 
-function api.get_schema(criteria)
-	local engine = criteria:get_engine() or {}
+function api.engine(criteria, engine)
+	return standard_getter_setter(criteria, 'engine', engine)
+end
+
+function api.schema(criteria, schema)
+	assert(not schema, "cannot set schema on a query")
+	local engine = criteria:engine() or {}
 	return engine.schema;
 end
 
-function api.get_all_entities(criteria)
-	local schema = criteria:get_schema() or {}
+function api.entities(criteria, entities)
+	assert(not entities, "cannot set entities on a query")
+	local schema = criteria:schema() or {}
 	return schema.entities;
 end
 
-function api.get_provider(criteria)
-	return criteria:get_engine().provider;
+function api.provider(criteria, provider)
+	assert(not provider, "cannot set provider on a query")
+	return criteria:engine().provider;
 end
 
 local function split_condition_name(name)
@@ -69,8 +82,8 @@ local function split_condition_name(name)
 end
 
 local function create_column(criteria, field_name)
-	local provider = criteria:get_provider();
-	local entity = criteria:get_entity()
+	local provider = criteria:provider();
+	local entity = criteria:entity()
 	
 	-- find entity and column
 	local relations, attribute_name = split_condition_name(field_name)
@@ -124,8 +137,11 @@ function api.create_condition(criteria, field_name, field_condition)
 end 
 
 function api.conditions(criteria, filters)
+	if not filters then
+		return criteria.__conditions or {}
+	end
+
 	criteria.__conditions = criteria.__conditions or {}
-	-- for each condition
 	
 	if ( type(filters) == "table" and next(filters)) then
 		for lside, rside in pairs(filters) do
@@ -137,12 +153,8 @@ function api.conditions(criteria, filters)
 	return criteria, criteria.__conditions
 end
 
-function api.get_conditions(criteria)
-	return criteria.__conditions or {}
-end
-
 function api.render_conditions(query, conditions, as_string)
-	local provider = query:get_provider()
+	local provider = query:provider()
 	local T = query:template()
 
 	local result = {};
@@ -215,8 +227,8 @@ function api.render_engine(criteria, engine)
 end
 
 function api.join(criteria, attr, left_alias)
-	local entity = criteria:get_entity()
-	local entities = criteria:get_all_entities();
+	local entity = criteria:entity()
+	local entities = criteria:entities();
 	
 	criteria.from_alias = entity.name
 	criteria.__joins = criteria.__joins or {};

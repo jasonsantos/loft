@@ -198,7 +198,7 @@ render_engine = {
 
 		filters = function(query, filters)
 			--TODO: add support for OR clauses and more complex conditions
-			local _, conditions = query:conditions(filters)
+			local _, conditions = query:conditions(filters or {})
 			
 			local result = query:render_conditions(conditions)
 
