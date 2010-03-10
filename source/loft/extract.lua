@@ -1,7 +1,10 @@
 module(..., package.seeall)
 
 function render(engine, options)
+	local options = options or engine
+	local engine = options.engine or engine 
 	local schema = options.schema or engine.schema
+	local separator = options.separator or '\n'
 	assert(schema, "Schema not loaded (must call 'decorate' function first)", 2)
 	local format = options.format
 	if format=='logical' then
@@ -11,16 +14,19 @@ function render(engine, options)
 		local provider = options.provider or engine.provider
 		assert(provider, "Provider not loaded (must call 'setup' function first)", 2)
 		local result = {}
-		for _,entity in ipairs(schema.entities) do
-			table.insert(result, provider.create(engine, entity.name, true))
+		
+		for _,entity in pairs(schema.entities) do
+			table.insert(result, provider.create(engine, entity, true))
 		end
-		return table.concat(result, '\n')
+		return table.concat(result, separator)
 	else
 		error(string.format("Format '%s' not supported", tostring(format)), 2)
 	end
 end
 
-function introspect(engine, options) 
+function introspect(engine, options)
+	local options = options or engine
+	local engine = options.engine or engine 
 	local provider = engine.provider
 	
 	local cache_type = {}

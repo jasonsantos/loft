@@ -133,8 +133,7 @@ CREATE TABLE IF NOT EXISTS T_Info (
   f_author_id BIGINT(8), 
   f_creatorActor_id BIGINT(8), 
   f_state INT(10) COMMENT  'Info state, can assume one of ''5'' values'
-)
-
+);
 ]]
 
 local obj = {
@@ -370,7 +369,7 @@ CREATE TABLE IF NOT EXISTS T_Section (
 f_editor_id BIGINT(8), 
 f_name VARCHAR(100), 
 f_tag VARCHAR(100)
-)
+);
 ]]
 
 
@@ -421,4 +420,44 @@ provider.search(engine, {
 	}
 }) 
 
+assert_last_query[[
+SELECT 
+   f_infoid as id
+  FROM T_Info
+  info INNER JOIN T_Actor author ON ( info.f_author_id = author.F_ActorID ) INNER JOIN T_Section section ON ( info.f_section_id = section.F_SectionID )  
+  WHERE (author.f_name = 'Plutarch' AND section.f_name = 'Ancient Rome') 
+]]
 
+
+
+require'loft.extract'
+local ddl = loft.extract.render{engine=engine, format='physical'}
+
+assert(short_query(ddl)==short_query[[
+CREATE TABLE IF NOT EXISTS T_Editor ( 
+  f_id BIGINT(8) PRIMARY KEY NOT NULL AUTO_INCREMENT, 
+F_ActorID BIGINT(8)
+);
+CREATE TABLE IF NOT EXISTS T_Actor ( 
+  F_ActorID BIGINT(8) PRIMARY KEY NOT NULL AUTO_INCREMENT, 
+f_name VARCHAR(100)
+);
+CREATE TABLE IF NOT EXISTS T_Info ( 
+  f_infoid BIGINT(8) PRIMARY KEY NOT NULL AUTO_INCREMENT, 
+f_title VARCHAR(100), 
+f_summary LONGTEXT, 
+f_fulltext LONGTEXT, 
+f_section_id BIGINT(8), 
+f_authorName VARCHAR(255), 
+f_authorMail VARCHAR(255), 
+f_author_id BIGINT(8), 
+f_creatorActor_id BIGINT(8), 
+f_state INT(10) COMMENT  'Info state, can assume one of ''5'' values'
+);
+CREATE TABLE IF NOT EXISTS T_Section ( 
+  F_SectionID BIGINT(8) PRIMARY KEY NOT NULL AUTO_INCREMENT, 
+f_editor_id BIGINT(8), 
+f_name VARCHAR(100), 
+f_tag VARCHAR(100)
+);
+]])

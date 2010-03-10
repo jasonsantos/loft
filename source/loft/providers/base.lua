@@ -140,8 +140,7 @@ sql = {
 	CREATE = [==[
 CREATE TABLE IF NOT EXISTS $table_name ( 
   $columns{", "}[=[$escape_field_name{$column_name} $type$if{$size}[[($size)]]$if{$primary}[[ PRIMARY KEY]]$if{$required}[[ NOT NULL]]$if{$description}[[ COMMENT  $string_literal{$description}]]$if{$autoincrement}[[ AUTO_INCREMENT]]$sep
-]=])
-]==],
+]=]);]==],
 	
 	INSERT = [[INSERT INTO $table_name ($data{", "}[=[$escape_field_name{$column_name}$sep]=]) VALUES ($data{", "}[=[$value$sep ]=])]],
 	
