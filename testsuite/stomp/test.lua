@@ -1,5 +1,5 @@
 dofile('../../lib/util.lua')
-
+--[=====[
 package.path=";;../../lib/?.lua"
 
 local stomp = require'stomp'
@@ -387,10 +387,10 @@ local ColumnSize=function(column)
 		return ' '
 	end
 end
-
+--[===[
 local ColumnRequired=function(column)
 	if column.required == true then
-		return ' ' .. %Constants.REQUIRED .. ' '
+		return ' ' ..Constants.REQUIRED .. ' '
 	else
 		return ''
 	end
@@ -816,3 +816,4 @@ assert(r=='este é um template do mostra 1 mostra 2 mostra 3 mostra 4 ')
 
 
 print'<<OK>>'
+]=====]
