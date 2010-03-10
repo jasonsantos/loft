@@ -347,7 +347,16 @@ engine_api=function(engine)
 	end
 	
 	function api.extract(options)
-		return extract.run(engine, options)
+		return extract.introspect(engine, options)
+	end
+
+	function api.schema(options)
+		local format = options.format or 'table'
+		if format=='table' then 
+			return engine.schema
+		else
+			return extract.render(engine, options)
+		end
 	end
 
 	table.add(engine, api)

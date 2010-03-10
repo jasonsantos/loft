@@ -1,6 +1,26 @@
 module(..., package.seeall)
 
-run = function (engine, options) 
+function render(engine, options)
+	local schema = options.schema or engine.schema
+	assert(schema, "Schema not loaded (must call 'decorate' function first)", 2)
+	local format = options.format
+	if format=='logical' then
+		--TODO: refactoring of the schema description rendering function
+		error('Not implemented')
+	elseif format=='physical' then
+		local provider = options.provider or engine.provider
+		assert(provider, "Provider not loaded (must call 'setup' function first)", 2)
+		local result = {}
+		for _,entity in ipairs(schema.entities) do
+			table.insert(result, provider.create(engine, entity.name, true))
+		end
+		return table.concat(result, '\n')
+	else
+		error(string.format("Format '%s' not supported", tostring(format)), 2)
+	end
+end
+
+function introspect(engine, options) 
 	local provider = engine.provider
 	
 	local cache_type = {}
