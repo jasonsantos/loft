@@ -218,12 +218,17 @@ function api.template(criteria, template)
 	return criteria
 end
 
-function api.render_engine(criteria, engine)
-	if not engine then
-		return criteria.__renderer  
-	end
-	criteria.__renderer = engine
-	return criteria
+function api.renderer(criteria, renderer)
+	return  standard_getter_setter(criteria, 'renderer', renderer)
+end
+
+function api.render(criteria, options)
+	local renderer = criteria:renderer() or criteria:provider().render_engine
+	local filters = options.filters
+	
+	renderer.prepare(criteria, filters)
+	
+	return renderer.render(criteria, options or {})
 end
 
 function api.join(criteria, attr, left_alias)

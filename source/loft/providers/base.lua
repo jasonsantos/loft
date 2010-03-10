@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS $table_name (
   $columns{", "}[[ $if{$column_name}[[$escape_field_name{$column_name}]][[$func]] as $escape_field_name{$alias}$sep
   ]]FROM $table_name
   $if{$__joins}[==[$from_alias $__joins[=[$type JOIN $join_table $alias ON ( $on_clause ) ]=] 
-  ]==]$if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[=[$if{$pagination|limit}[[ LIMIT $pagination|limit ]] $if{$pagination|offset}[[OFFSET $pagination|offset]]]=]]===],
+  ]==]$if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$has_sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[=[$if{$pagination|limit}[[ LIMIT $pagination|limit ]] $if{$pagination|offset}[[OFFSET $pagination|offset]]]=]]===],
 	
 	DELETE = [==[DELETE FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==],
 	
@@ -217,7 +217,7 @@ render_engine = {
 	templates = sql,
 	
 	prepare = function(query, filters)
-		query:render_engine(render_engine)
+		query:renderer(render_engine)
 		
 		if ( not query.table_name and not query.name ) then
 			error("Entity must have a  `name` or `table_name`.")
@@ -244,15 +244,24 @@ render_engine = {
 		
 		return query
 	end,
+	
+	render = function(query, options)
+		local options = options or {}
+		local query_type = options.type or options[1] or 'SELECT'
+		for name, data in pairs(options) do
+			if not tonumber(name) then
+				if type(data)=='table' then
+					query[name] = cosmo.make_concat( data )
+				else
+					query[name] = data
+				end
+			end
+		end
+		
+		return cosmo.fill(sql[query_type], query)
+	end
 }
 
-local filters_fill_cosmo = function (query, _filters)
-	return render_engine.templates.filters(query, _filters)
-end
-
-local table_fill_cosmo = function(query)
-	return render_engine.prepare(query)
-end
 
 -- ######################################### --
 --  PUBLIC API
@@ -290,7 +299,6 @@ function persist(engine, entity, id, obj)
 	obj.id = id or obj.id
 	local data = {}
 	local t_required = {}
-	local isUpdate = false
 	
 	events.notify('before', 'persist', {engine=engine, entity=entity, id=id, obj=obj})
 	
@@ -317,24 +325,15 @@ function persist(engine, entity, id, obj)
 		error("The following required fields are absent (" .. table.concat(t_required, ',') .. ")")
 	end
 	
-	local t = table_fill_cosmo(query)
-	t.data = cosmo.make_concat( data )
-	t.id = obj.id
+	local query_type = (obj.id) and 'UPDATE' or 'INSERT'
 	
-	local sql_str
-	if ( t.id ) then
-		filters_fill_cosmo(t, { id = id })	
-		sql_str = cosmo.fill(sql.UPDATE, t)
-		isUpdate = true
-	else
-		sql_str = cosmo.fill(sql.INSERT, t)
-	end
+	local sql_str = query:render{ query_type, data=data, filters={ id=id } }
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
 	local ok, data = pcall(engine.db.exec, sql_str)
 	
-	if isUpdate then
+	if query_type=='UPDATE' then
 		return ok, data
 	end
 	
@@ -358,7 +357,8 @@ end
 
 function create(engine, entity, do_not_execute)
 	local query = query.create(engine, entity)
-	local sql_str = cosmo.fill(sql.CREATE, table_fill_cosmo(query))
+	
+	local sql_str = query:render{ 'CREATE' }
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
 	
@@ -372,10 +372,8 @@ end
 -- @param obj the object itself
 function delete(engine, entity, id, obj)	
 	local query = query.create(engine, entity)
-	local t = table_fill_cosmo(query)	
-	filters_fill_cosmo(t, { id = id })	
 	
-	local sql_str = cosmo.fill(sql.DELETE, t)
+	local sql_str = query:render{'DELETE', filters={ id=id } }
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
@@ -391,10 +389,8 @@ end
 -- @return object of the given type corresponding to Id or nil
 function retrieve(engine, entity, id)
 	local query = query.create(engine, entity)
-	local t = table_fill_cosmo(query)	
-	filters_fill_cosmo(t, { id = id })	
 
-	local sql_str = cosmo.fill(sql.SELECT, t)
+	local sql_str = query:render{'SELECT', filters={ id=id } }
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
@@ -423,17 +419,17 @@ function search(engine, options)
 	local entity, filters, pagination, sorting, visitorFunction =
  		(options.entity or options[1]), options.filters, options.pagination, options.sorting, options.visitor
 	
-	local criteria = query.create(engine, entity, options.include_fields, options.exclude_fields)
+	local query = query.create(engine, entity, options.include_fields, options.exclude_fields)
 	
 	if ( type(pagination) == "table" and table.count(pagination) > 0) then
 		local limit = pagination.limit or pagination.top or options.page_size or engine.options.page_size
 		local offset = pagination.offset or (pagination.page and limit * (pagination.page - 1))
 		
-		criteria.pagination = {limit=limit, offset=offset}
+		query.pagination = {limit=limit, offset=offset}
 	end
-	
+	local sortingcolumns
 	if ( type(sorting) == "table" and #sorting > 0 ) then
-		local sortingcolumns = {}
+		sortingcolumns = {}
 		for i, v in ipairs(sorting) do
 			local d = string.sub(string.gsub(v,'[^+%-]*', ''), 1, 1)
 			local f = string.gsub(v,'[+%-]*', '')
@@ -444,15 +440,10 @@ function search(engine, options)
 			end
 		end
 		
-		criteria.sorting = {}
-		criteria.sorting_concat = cosmo.make_concat( sortingcolumns )
-		
+		query.has_sorting = {}
 	end
 	
-	local t = table_fill_cosmo(criteria)	
-	filters_fill_cosmo(t, filters)
-
-	local sql_str = cosmo.fill(sql.SELECT, t)
+	local sql_str = query:render{'SELECT', filters=filters, sorting_concat=sortingcolumns}
 	
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
@@ -475,10 +466,10 @@ function search(engine, options)
 end
 
 function get_tables(engine, options)
-	local query = cosmo.fill(sql.GET_TABLES, {})
+	local query = query.create()
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local ok, iter = pcall(engine.db.exec, query)
+	local ok, iter = pcall(engine.db.exec, query:render{'GET_TABLES'})
 	
 	if ok then
 		--TODO: implement resultset proxies using the list module
@@ -519,12 +510,10 @@ function get_description(engine, options)
 	local table_name = options.table_name
 	assert(table_name, "you need to inform a table name")
 	
-	local query = cosmo.fill(sql.GET_TABLE_DESCRIPTION, {
-		table_name = table_name
-	})
+	local query = query.create()
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	local ok, iter = pcall(engine.db.exec, query)
+	local ok, iter = pcall(engine.db.exec, { 'GET_TABLE_DESCRIPTION', table_name = table_name })
 	
 	if ok then
 		--TODO: implement resultset proxies using the list module
@@ -548,14 +537,12 @@ end
 -- @return 			number of results to be expected with these options
 
 function count(engine, options)
- 	local entity, _filters, pagination, sorting, visitorFunction =
+ 	local entity, filters, pagination, sorting, visitorFunction =
  		options.entity, options.filters, options.pagination, options.sorting, options.visitor
  		
-	local t = table_fill_cosmo( query.create(engine, entity) )
+	local query = query.create(engine, entity)
 	
-	filters_fill_cosmo(t, _filters)
-	t.columns = cosmo.make_concat( { { func = 'COUNT(*)', alias = 'count' }} )
-	local sql_str = cosmo.fill(sql.SELECT, t)
+	local sql_str = query:render{ 'SELECT', filters=filters, columns = { { func = 'COUNT(*)', alias = 'count' }} }
 	
 	local ok, iter_num = pcall(engine.db.exec, sql_str)
 	
