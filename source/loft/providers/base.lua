@@ -147,10 +147,11 @@ CREATE TABLE IF NOT EXISTS $table_name (
 	
 	UPDATE = [==[UPDATE $table_name SET $data{", "}[=[$escape_field_name{$column_name}=$value$sep]=] $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==],
 	
-	SELECT = [==[SELECT 
+	SELECT = [===[SELECT 
   $columns{", "}[[ $if{$column_name}[[$escape_field_name{$column_name}]][[$func]] as $escape_field_name{$alias}$sep
   ]]FROM $table_name
-  $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[=[$if{$pagination|limit}[[ LIMIT $pagination|limit ]] $if{$pagination|offset}[[OFFSET $pagination|offset]]]=]]==],
+  $if{$__joins}[==[$from_alias $__joins[=[$type JOIN $join_table $alias ON ( $on_clause ) ]=] 
+  ]==]$if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[=[$if{$pagination|limit}[[ LIMIT $pagination|limit ]] $if{$pagination|offset}[[OFFSET $pagination|offset]]]=]]===],
 	
 	DELETE = [==[DELETE FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==],
 	
@@ -170,115 +171,89 @@ CREATE TABLE IF NOT EXISTS $table_name (
 local passover_function = function(...) return ... end
 
 
-local render_engine = {
-	render_field_name = function(name)
-	end,
-	render_filters = function(conditions)
-	end,
-	render_condition = function(lside, op, rside)
-		return tostring(lside)..tostring(op)..tostring(rside)
-	end,
+render_engine = {
+	templates = {
+		IN = ' IN ',
+		IS = ' IS ',
+		LIKE = ' LIKE ',
+		EQ = ' = ',
+		LT = ' < ',
+		GT = ' > ',
+		GE = ' >= ',
+		ISNULL = ' IS NULL',
+		ISNOTNULL = ' IS NOT NULL',
+		
+		set = function(items)
+			local content = type(items)=='table' and table.concat(items, ', ') or tostring(items) 
+			return '('..content..')'
+		end,
+		
+		field_name = function(query, field)
+			if type(field)=='string' then
+				return field
+			else
+				assert(field.column_name, "Invalid field on criteria")
+				return (query.from_alias and (field.entity_name .. '.') or '') .. field.column_name
+			end
+		end,
+
+		filters = function(query, filters)
+			--TODO: add support for OR clauses and more complex conditions
+			local _, conditions = query:conditions(filters)
+			
+			local result = query:render_conditions(conditions)
+
+			if next(result) then
+				query.filters = {}
+			end
+			query.filters_concat = cosmo.make_concat( result )
+		end,
+
+		condition = function(query, lside, op, rside)
+			return tostring(lside)..tostring(op)..tostring(rside)
+		end,
+		
+		join_conditions = function(list)
+			return table.concat(list, ' AND ')
+		end
+	},
+	
 	prepare = function(query)
+		query:render_engine(render_engine)
+		
+		if ( not query.table_name and not query.name ) then
+			error("Entity must have a  `name` or `table_name`.")
+		end
+		
+		query.columns = cosmo.make_concat( query.__fields )
+		
+		query['string_literal'] = function (arg) 
+			return string_literal(arg[1])
+		end
+		
+		query['escape_field_name'] = function (arg) 
+			return escape_field_name(arg[1])
+		end
+		
+		query["if"] = function (arg)
+		   if arg[1] then arg._template = 1 else arg._template = 2 end
+		   cosmo.yield(arg)
+		end
+		
+		return query
 	end,
+	
 	render = function(query)
 	end,
 }
 
-local table_fill_cosmo = function (query)
-	local t = query or {}
-	
-	if ( not t.table_name and not t.name ) then
-		error("Entity must have a  `name` or `table_name`.")
-	end
-	
-	t.columns = cosmo.make_concat( t.__fields )
-	
-	t['string_literal'] = function (arg) 
-		return string_literal(arg[1])
-	end
-	
-	t['escape_field_name'] = function (arg) 
-		return escape_field_name(arg[1])
-	end
-	
-	t["if"] = function (arg)
-	   if arg[1] then arg._template = 1 else arg._template = 2 end
-	   cosmo.yield(arg)
-	end
-	
-	return t
+local filters_fill_cosmo = function (query, _filters)
+	return render_engine.templates.filters(query, _filters)
 end
 
-local render_field_name = function(criteria, field)
-	if type(field)=='string' then
-		return field
-	else
-		assert(field.column_name, "Invalid field on criteria")
-		return (field.entity_name and (field.entity_name .. '.') or '') .. field.column_name
-	end
+local table_fill_cosmo = function(query)
+	return render_engine.prepare(query)
 end
-
-local filters_fill_cosmo = function (criteria, _filters)
-	local provider = criteria:get_provider()
-	--TODO: add support for OR clauses and complex conditions
-	local _, conditions = criteria:conditions(_filters)
-	
-	local result = {};
-
-	for _, condition in ipairs(conditions) do
-		local left_side = condition.left_side
-		local right_side = condition.right_side
-		
-		local escape_function = left_side.onEscape or passover_function
-		local fn = function(v)
-			if type(v)=='table' then 
-				return render_field_name(criteria, v)
-			else
-				return escape_function(v)
-			end 
-		end
-		
-		local lside = render_field_name(criteria, left_side)
-		local op, rside
-					
-		if right_side.type == 'simple' then
-			op, rside = ' = ', fn(right_side.value)
-		elseif type(right_side)=='table' then
-
-			if right_side.type=='set' then
-				local copied_items = table.copy(right_side.value)
-				for i, v in ipairs(copied_items) do
-					copied_items[i] = fn(v)
-				end
-				op, rside = ' IN ', '(' .. table.concat(copied_items, ', ') .. ')'
-			elseif right_side.contains then
-				lside, op, rside = '', '', filters.contains(lside, fn(right_side.contains))
-			elseif right_side.like then
-				op, rside = ' LIKE ', fn(filters.like(right_side.like))
-			elseif right_side.eq then
-				op, rside = ' = ', fn(right_side.eq)
-			elseif right_side.lt then
-				op, rside = ' < ', fn(right_side.lt)
-			elseif right_side.gt then
-				op, rside = ' > ', fn(right_side.gt)
-			elseif right_side.le then
-				op, rside = ' <= ', fn(right_side.le)
-			elseif right_side.ge then
-				op, rside = ' >= ', fn(right_side.ge)
-			elseif right_side.null then
-				op, rside = ' IS ', 'NULL'
-			elseif right_side.notnull then
-				op, rside = ' IS ', 'NOT NULL'
-			end
-		end
-		table.insert(result, render_engine.render_condition(lside, op, rside))
-	end
-	if next(result) then
-		criteria.filters = {}
-	end
-	criteria.filters_concat = cosmo.make_concat( result )
-end
-
 
 -- ######################################### --
 --  PUBLIC API
@@ -475,8 +450,8 @@ function search(engine, options)
 		
 	end
 	
-	filters_fill_cosmo(criteria, filters)
 	local t = table_fill_cosmo(criteria)	
+	filters_fill_cosmo(t, filters)
 
 	local sql_str = cosmo.fill(sql.SELECT, t)
 	

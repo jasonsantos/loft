@@ -23,10 +23,10 @@ local default = schema.expand(function ()
 			section = belongs_to{'section'},
 			authorName = text(),
 			authorMail = text(),
-			actor = text(),
-			creatorActor = text(),
+			author = belongs_to{'actor'},
+			creatorActor = belongs_to{'actor'},
 			state = integer{
-				size=10, description="Estado da info, pode assumir um de '5' valores",
+				size=10, description="Info state, can assume one of '5' values",
 				handlers = {
 	                get = function (f, v) record.gettings = record.gettings + 1 return v end,
 	                set = function (f, v) record.settings = record.settings + 1 return v end,
@@ -38,12 +38,37 @@ local default = schema.expand(function ()
 	    },
 	}
 	
-	section = entity { 
+	section = entity {
+		table_name= "T_Section", 
 		fields = { 
-			id = { order = 1, colum_name = "F_SectionID", type = "key" },
+			id = { order = 1, column_name = "F_SectionID", type = "key" },
 			name = { type = "text", size = 100, maxlength=250 },
 			tag = { type = "text", size = 100, maxlength=250 },
+			editor = has_one{ 'editor' },
 			infos = has_many{ 'info' }
+		},
+		handlers = {
+	        before_save = function(e, obj) print('!!!!!!!!') end,
+	    },
+	}	
+	
+	editor = entity {
+		table_name= "T_Editor", 
+		fields = { 
+			id = key{},
+			actor = belongs_to{ column_name = "F_ActorID", entity = "actor" },
+			sections = has_many{ 'section' }
+		},
+		handlers = {
+	        before_save = function(e, obj) print('!!!!!!!!') end,
+	    },
+	}	
+	
+	actor = entity {
+		table_name= "T_Actor", 
+		fields = { 
+			id = { order = 1, column_name = "F_ActorID", type = "key" },
+			name = { type = "text", size = 100, maxlength=250 },
 		},
 		handlers = {
 	        before_save = function(e, obj) print('!!!!!!!!') end,
@@ -72,6 +97,7 @@ local function assert_last_query(sql)
 end
 
 local engine = {
+	schema = default,
 	provider = provider,
 	db = {
 		exec = function(sql)
@@ -104,9 +130,9 @@ CREATE TABLE IF NOT EXISTS T_Info (
   f_section_id BIGINT(8),
   f_authorName VARCHAR(255),
   f_authorMail VARCHAR(255),
-  f_actor VARCHAR(255),
-  f_creatorActor VARCHAR(255),
-  f_state INT(10) COMMENT  'Estado da info, pode assumir um de ''5'' valores'
+  f_author_id BIGINT(8), 
+  f_creatorActor_id BIGINT(8), 
+  f_state INT(10) COMMENT  'Info state, can assume one of ''5'' values'
 )
 
 ]]
@@ -145,8 +171,8 @@ SELECT
 	f_section_id as section, 
 	f_authorName as authorName, 
 	f_authorMail as authorMail, 
-	f_actor as actor, 
-	f_creatorActor as creatorActor, 
+	f_author_id as author, 
+    f_creatorActor_id as creatorActor,
 	f_state as state 
 	FROM T_Info 
 	WHERE (f_infoid = 1) 
@@ -179,8 +205,8 @@ SELECT
 	f_section_id as section, 
 	f_authorName as authorName, 
 	f_authorMail as authorMail, 
-	f_actor as actor, 
-	f_creatorActor as creatorActor, 
+	f_author_id as author, 
+    f_creatorActor_id as creatorActor,
 	f_state as state 
 	FROM T_Info 
 	WHERE (f_infoid = 1 AND f_state IN (1, 2, 3, 4)) 
@@ -206,8 +232,8 @@ SELECT
  f_section_id as section, 
  f_authorName as authorName, 
  f_authorMail as authorMail, 
- f_actor as actor, 
- f_creatorActor as creatorActor, 
+ f_author_id as author, 
+ f_creatorActor_id as creatorActor,
  f_state as state
 FROM T_Info
 WHERE (f_state > 3 AND f_title IS NOT NULL AND f_authorName LIKE 'a%')  ]]
@@ -223,8 +249,8 @@ SELECT
 		 f_section_id as section, 
 		 f_authorName as authorName, 
 		 f_authorMail as authorMail, 
-		 f_actor as actor, 
-		 f_creatorActor as creatorActor, 
+		 f_author_id as author, 
+	     f_creatorActor_id as creatorActor,
 		 f_state as state
 		FROM T_Info
 ]]
@@ -240,10 +266,10 @@ SELECT
 		 f_section_id as section, 
 		 f_authorName as authorName, 
 		 f_authorMail as authorMail, 
-		 f_actor as actor, 
-		 f_creatorActor as creatorActor, 
+		 f_author_id as author, 
+    	 f_creatorActor_id as creatorActor,
 		 f_state as state
-		FROM T_Info
+		 FROM T_Info
 		   LIMIT 1  OFFSET 1
 ]]
 
@@ -258,8 +284,8 @@ SELECT
 		 f_section_id as section, 
 		 f_authorName as authorName, 
 		 f_authorMail as authorMail, 
-		 f_actor as actor, 
-		 f_creatorActor as creatorActor, 
+		 f_author_id as author, 
+	     f_creatorActor_id as creatorActor,
 		 f_state as state
 		FROM T_Info
 		 ORDER BY title ASC, id DESC, `fulltext` ASC 
@@ -285,8 +311,8 @@ SELECT
    f_section_id as section, 
    f_authorName as authorName, 
    f_authorMail as authorMail, 
-   f_actor as actor, 
-   f_creatorActor as creatorActor, 
+   f_author_id as author, 
+   f_creatorActor_id as creatorActor,
    f_state as state
   FROM T_Info
   WHERE (f_state > 3 AND f_title IS NOT NULL AND f_authorName LIKE 'a%') ORDER BY title ASC, id DESC, `fulltext` ASC  LIMIT 1  OFFSET 1
@@ -310,8 +336,8 @@ SELECT
    f_section_id as section, 
    f_authorName as authorName, 
    f_authorMail as authorMail, 
-   f_actor as actor, 
-   f_creatorActor as creatorActor, 
+   f_author_id as author, 
+   f_creatorActor_id as creatorActor,
    f_state as state
   FROM T_Info
   WHERE (f_title IS NOT NULL AND CONTAINS(f_fulltext, '*shake*')) ORDER BY title ASC
@@ -339,9 +365,11 @@ SELECT
 provider.create(engine, default.entities.section)
 
 assert_last_query[[
-CREATE TABLE IF NOT EXISTS section ( 
-  f_id BIGINT(8) PRIMARY KEY NOT NULL AUTO_INCREMENT, 
-f_name VARCHAR(100)
+CREATE TABLE IF NOT EXISTS T_Section ( 
+  F_SectionID BIGINT(8) PRIMARY KEY NOT NULL AUTO_INCREMENT, 
+f_editor_id BIGINT(8), 
+f_name VARCHAR(100), 
+f_tag VARCHAR(100)
 )
 ]]
 
@@ -373,4 +401,24 @@ provider.search(engine, {
 		section_name = 'teste',
 	}
 }) 
+
+assert_last_query[[
+SELECT 
+   f_infoid as id
+  FROM T_Info
+  info INNER JOIN T_Section section ON ( info.f_section_id = section.F_SectionID )  
+  WHERE (section.f_name = 'teste')
+]]
+
+provider.search(engine, {
+	default.entities.info,
+	include_fields = {
+		'id'
+	}, 	
+	filters = {
+		section_name = 'Ancient Rome',
+		author_name = 'Plutarch',
+	}
+}) 
+
 
