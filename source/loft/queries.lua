@@ -178,12 +178,12 @@ function api.render_conditions(query, conditions, as_string)
 		if right_side.type == 'simple' then
 			op, rside = T.EQ, fn(right_side.value)
 		elseif type(right_side)=='table' then
-			if right_side.type=='set' then
-				local copied_items = table.copy(right_side.value)
+			if right_side.type=='set' or right_side.notin then
+				local copied_items = table.copy(right_side.value or right_side.notin)
 				for i, v in ipairs(copied_items) do
 					copied_items[i] = fn(v)
 				end
-				op, rside = T.IN, T.set(copied_items)
+				op, rside = right_side.notin and T.NOTIN or T.IN, T.set(copied_items)
 			elseif right_side.contains then
 				lside, op, rside = '', '', provider.filters.contains(lside, fn(right_side.contains))
 			elseif right_side.like then

@@ -161,6 +161,7 @@ CREATE TABLE IF NOT EXISTS $table_name (
 	GET_TABLE_DESCRIPTION = [==[DESCRIBE $table_name]==],
 	
 	IN = ' IN ',
+	NOTIN = ' NOT IN ',
 	IS = ' IS ',
 	LIKE = ' LIKE ',
 	EQ = ' = ',

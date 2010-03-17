@@ -211,7 +211,29 @@ SELECT
 	WHERE (f_infoid = 1 AND f_state IN (1, 2, 3, 4)) 
 ]]
 
+provider.search(engine, {
+	default.entities.info, 
+	filters = {
+		id = 1,
+		state = {notin = {1, 2, 3, 4}}
+	}
+	}) 
 
+assert_last_query[[
+SELECT 
+	f_infoid as id, 
+	f_title as title, 
+	f_summary as summary, 
+	f_fulltext as `fulltext`, 
+	f_section_id as section, 
+	f_authorName as authorName, 
+	f_authorMail as authorMail, 
+	f_author_id as author, 
+    f_creatorActor_id as creatorActor,
+	f_state as state 
+	FROM T_Info 
+	WHERE (f_infoid = 1 AND f_state NOT IN (1, 2, 3, 4)) 
+]]
 
 provider.search(engine, {
 	default.entities.info, 
