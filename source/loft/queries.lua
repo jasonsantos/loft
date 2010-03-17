@@ -74,13 +74,6 @@ function api.provider(criteria, provider)
 	return criteria:engine().provider;
 end
 
-local function split_condition_name(name)
-	local names = {name:split('_')}
-	names = type(names)=='string' and {names} or names or {}
-	local attribute = table.remove(names,#names)
-	return names, attribute
-end
-
 local function create_column(criteria, field_name, field_entity)
 ---print(']]]]create_column]]]',field_name, field_entity and field_entity.name)
 	local provider = criteria:provider();
@@ -92,7 +85,7 @@ local function create_column(criteria, field_name, field_entity)
 	end
 	
 	-- find entity and column
-	local relations, attribute_name = split_condition_name(field_name)
+	local relations, attribute_name = util.split_field_name(field_name)
 --	print(#relations, attribute_name, field_name)
 	local parent_relation
 

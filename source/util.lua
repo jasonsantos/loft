@@ -59,3 +59,11 @@ function indexed_table(o)
 	local t = setmetatable({}, indexed_table_mt)
 	return t(o or {})
 end
+
+function split_field_name(name)
+	local names = {name:split('_')}
+	names = type(names)=='string' and {names} or names or {}
+	local attribute = table.remove(names,#names)
+	return names, attribute
+end
+
