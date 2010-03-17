@@ -148,6 +148,7 @@ engine_api=function(engine)
 			error("Object must belong to a valid entity",2)
 		end
 		
+		--TODO: refactor this code to eliminate the closures
 		return proxy.create(entity, id, obj, {
 			save = function(...)
 				return api.save(entity, ...)
@@ -225,7 +226,7 @@ engine_api=function(engine)
 		local options = options or entity
 		local entity = options.entity or entity
 		local sorting = options.sorting or {}
-		local filters = options.filters or {}
+		local filters = options.filters
 		local pagination = options.pagination or {}
 		
 		local results = {}
@@ -254,7 +255,7 @@ engine_api=function(engine)
 	function api.count(entity, options)
 		local options = options or entity
 		local entity = options.entity or entity
-		local filters = options.filters or {}
+		local filters = options.filters
 		
 		local count = provider_function(entity, 'count')
 		
