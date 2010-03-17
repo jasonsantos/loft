@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS $table_name (
 
 base.sql.INSERT = [[INSERT INTO $table_name ($data{", "}[=[$escape_field_name{$column_name}$sep]=]) VALUES ($data{", "}[=[$value$sep ]=])]]
 
-base.field_types.key={type='INTEGER', primary=true, autoincrement=true, required=false, onEscape=tonumber}
+base.field_types.key={type='INTEGER', primary=true, autoincrement=true, required=false, onEscape=tonumber, onRetrieve=tonumber}
 
 
 base.database_engine.get_last_id = function(connection)
