@@ -32,7 +32,7 @@ function create(engine, entity, include_fields, exclude_fields)
 			end
 		end
 	end
-	
+
 	criteria:sort_fields(function(f1,f2) return f1.name < f2.name end)
 	criteria:sort_fields(function(f1,f2) return f1.order < f2.order end)
 	
@@ -81,40 +81,58 @@ local function split_condition_name(name)
 	return names, attribute
 end
 
-local function create_column(criteria, field_name)
+local function create_column(criteria, field_name, field_entity)
+---print(']]]]create_column]]]',field_name, field_entity and field_entity.name)
 	local provider = criteria:provider();
 	local entity = criteria:entity()
+---print('&&&&',field_name)
+	if criteria.__columns[field_name] then
+---print('&_&_&_&', criteria.__columns[field_name].entity_name)
+		return criteria.__columns[field_name]
+	end
 	
 	-- find entity and column
 	local relations, attribute_name = split_condition_name(field_name)
 --	print(#relations, attribute_name, field_name)
 	local parent_relation
-	for _, relation_name in ipairs(relations) do
---	print('[*]',relation_name)
-		_, entity = criteria:join(relation_name, parent_relation)
-		parent_relation = relation_name 
+
+	if not field_entity then
+		for _, relation_name in ipairs(relations) do
+---print('[*]',relation_name, "'under'", parent_relation)
+			_, entity = criteria:join(relation_name, parent_relation)
+			parent_relation = relation_name
+		end
+	else
+		entity = field_entity
+		parent_relation = parent_relation or relations[#relations] or entity.name
 	end
 
-	local field = assert(entity.fields[attribute_name], "Could not find field '" .. attribute_name .. "' in entity '" .. entity.name .. "'") 
+	local field = assert(entity.fields[attribute_name], "Could not find field '" .. attribute_name .. "' in entity '" .. entity.name .. "'")
 
 	local field_type = provider.field_types[field.type] or {}
-	local column = table.merge(field_type, field)
---	print('[[', field.column_name, ']]')
+	local column = criteria.__columns[field_name] or {} -- uses the stub when a join has already created it
+	column = table.add(column, field_type)
+	column = table.add(column, field)
+---print('[[', field.column_name, ']]')
 	column.name = field.column_name
 	column.alias = field_name
 	column.order = field.order or 999
 	column.type = field_type.type
 
-	column.entity = entity 
-	column.entity_name = parent_relation or entity.name 
+	column.entity = entity
+	column.entity_name = parent_relation or entity.name
+---print('[<[', column.entity_name, ']<]')
+	
+	criteria.__columns[field_name] = column
+	table.insert(criteria.__columns, column)
 	
 	return column
 end
 
-function api.create_condition(criteria, field_name, field_condition)
---	print('>>create_condition>>>',field_name)
+function api.create_condition(criteria, field_name, field_condition, field_entity, condition_entity)
+---print('>>create_condition>>>',field_name,field_entity and field_entity.name, condition_entity and condition_entity.name)
 	
-	local left_side = create_column(criteria, field_name)
+	local left_side = create_column(criteria, field_name, field_entity)
 	local right_side
 	
 	if type(field_condition)=='string' or type(field_condition)=='number' or type(field_condition)=='boolean' then
@@ -122,19 +140,19 @@ function api.create_condition(criteria, field_name, field_condition)
 	elseif type(field_condition)=='table' and #field_condition>1 then
 		right_side = { type = 'set', value = field_condition }
 	else
---		print('-->')
+		---print('-->')
 		right_side = field_condition
 		if type(field_condition)=='table' then
 			local op,c = next(field_condition) 
 			if type(c)=='table' and c.field then
-				local column = create_column(criteria, c.field)
+				local column = create_column(criteria, c.field, condition_entity)
 				right_side[op] = table.merge(right_side, column)
 			end
 		end
 	end
---	print '<'
+---print('<<create_condition<<<')
 	return {left_side=left_side, right_side=right_side}
-end 
+end
 
 function api.conditions(criteria, filters)
 	if not filters then
@@ -232,14 +250,21 @@ function api.render(criteria, options)
 end
 
 function api.join(criteria, attr, left_alias)
+---print('>>>join>>', attr, left_alias)
 	local entity = criteria:entity()
 	local entities = criteria:entities();
 	
 	criteria.from_alias = entity.name
 	criteria.__joins = criteria.__joins or {};
-	
+---print('left_alias:', left_alias, attr)
 	local left_alias = left_alias or entity.name
 	local right_attribute = assert(attr, 'join must have an attribute name')
+
+	if criteria.__joins[right_attribute] then
+		-- attribute is already on a previous join
+		return criteria, criteria.__joins[right_attribute]
+	end
+---print('==joined=>',right_attribute)
 
 	if left_alias~=entity.name and not criteria.__joins[left_alias] then
 		error("entity '"..tostring(left_alias).."' must be added to criteria before being used as the left side of a join",2)
@@ -249,20 +274,16 @@ function api.join(criteria, attr, left_alias)
 	local right_field = assert(left.fields[right_attribute], "field '"..tostring(right_attribute).."' doesn't exist on entity '"..tostring(left_alias).."'")
 	local right_entity = assert(right_field.entity, "field '"..tostring(right_attribute).."' must be a relationship attribute on entity '"..tostring(left_alias).."'")
 
-	local right = assert(entities[right_entity], "join entity '" .. tostring(right_entity).. "' must be present in schema") 
-	
-	if criteria.__joins[right_attribute] then
-		-- attribute is already on a previous join
-		return criteria, entities[right_entity]
-	end
+	local right = assert(entities[right_entity], "join entity '" .. tostring(right_entity).. "' must be present in schema")
 
-	criteria.__joins[right_attribute] = true
+	criteria.__joins[right_attribute] = right
 	
 	--TODO: add support for left and right joins
 	--TODO: add support for key names different than 'id'
 	--TODO: add support for multiple keys
 	local left_condition_field = (left_alias~=entity.name and left_alias..'_' or '')..right_attribute
-	local on_conditions = { criteria:create_condition(left_condition_field, {eq = {field=right_attribute..'_id'}}) }
+---print('>>',left_condition_field, left_condition_field..'_id')
+	local on_conditions = { criteria:create_condition(left_condition_field, {eq = {field=left_condition_field..'_id'}}, left, right) }
 	
 	table.insert(criteria.__joins, {type="INNER", join_table=right.table_name, alias=right_attribute, on_clause=function()
 		return criteria:render_conditions(on_conditions, true)
@@ -279,12 +300,7 @@ function api.columns(criteria, fields)
 end
 
 function api.column(criteria, field_name)
-	
-	criteria.__columns[field_name] = create_column(criteria, field_name) 
-	
-	table.insert(criteria.__columns, criteria.__columns[field_name])
-	
-	return criteria, criteria.__columns[field_name]
+	return criteria, create_column(criteria, field_name)
 end
 
 function api.field(criteria, field_name)

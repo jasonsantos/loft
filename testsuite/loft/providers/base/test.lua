@@ -483,3 +483,13 @@ f_name VARCHAR(100),
 f_tag VARCHAR(100)
 );
 ]])
+
+provider.search(engine, {
+	default.entities.info,
+	include_fields = {
+		'id'
+	}, 	
+	filters = {
+		section_editor_actor_name = 'Fulano de Tal',
+	}
+}) 
