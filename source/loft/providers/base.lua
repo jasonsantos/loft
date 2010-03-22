@@ -120,13 +120,13 @@ string_literal=function(s)
 end
 
 field_types = {
-	key={type='BIGINT', size='8', required=true, primary=true, autoincrement=true, onEscape=tonumber},
-	integer={type='INT', size='5', onEscape=tonumber},
-	number={type='DOUBLE', onEscape=tonumber},
-	currency={type='DECIMAL', size={14,2}, onEscape=tonumber},
+	key={type='BIGINT', size='8', required=true, primary=true, autoincrement=true, onEscape=tonumber, onRetrieving=tonumber},
+	integer={type='INT', size='5', onEscape=tonumber, onRetrieving=tonumber},
+	number={type='DOUBLE', onEscape=tonumber, onRetrieving=tonumber},
+	currency={type='DECIMAL', size={14,2}, onEscape=tonumber, onRetrieving=tonumber}, -- TODO: create a currency helper
 	text={type='VARCHAR',size='255', onEscape=string_literal},
 	long_text={type='LONGTEXT', onEscape=string_literal},
-	timestamp={type='DATETIME'}, 
+	timestamp={type='DATETIME'}, --TODO: create a datetime helper
 	boolean={type='BOOLEAN'},
 	
 	has_one={type='BIGINT', size='8', onEscape=tonumber},
@@ -263,6 +263,50 @@ render_engine = {
 	end
 }
 
+function get_field_entity(f, entities)
+	return entities[f.entity]
+end
+
+function find_field(engine, entity, field_name, fn)
+	local fn = fn or get_field_entity;
+	local provider = engine.provider or {};
+	local entity = entity
+	local relations, attr = util.split_field_name(field_name)
+	for _,relation_name in ipairs(relations) do
+		local f = entity.fields[relation_name]
+		if f then
+			assert(f.entity, string.format("While looking for '%s': field '%s' must be a relationship", field_name,relation_name))
+			entity = fn(f, engine.schema.entities)
+			assert(entity, string.format("While looking for '%s': could not find entity '%s'", field_name,f.entity))
+			
+		else
+			error(string.format("While looking for '%s': relation '%s' must be present on entity '%s'", field_name, relation_name, entity and entity.name))
+		end
+	end 
+	local field = table.merge({internal_name=attr, field_name=field_name}, entity.fields[attr])
+	local field_type = table.copy(provider.field_types[field.type]) or {}
+	
+	return table.merge(field_type, field), entity, relations
+end
+
+function integrate_data_from_row(engine, entity, row)
+	local entities = engine.schema and engine.schema.entities or {};
+	local data = {}
+	for key, value in pairs(row) do
+	--TODO: treat all kinds of result
+	-- 1. all fields from main entity [OK]
+	-- 2. some from main entity, some are alien values or function results 
+	-- 3. some from main entity, some from a related entity, full load (has_one or belongs_to)
+	-- 4. some from main entity, some form a related entity, early binding (has_one or belongs_to) 
+	-- 5. some from main entity, some form a related entity, some from a third related entity
+	-- 6. some from main entity, some form a related entity, full load (has_many, has_and_belongs)
+		local field, e = find_field(engine, entity, key, get_field_entity)
+		
+		local fn = field.onRetrieving or passover_function
+		data[key] = fn(value)
+	end
+	return data
+end
 
 -- ######################################### --
 --  PUBLIC API
@@ -456,7 +500,8 @@ function search(engine, options)
 		local fn = visitorFunction or passover_function
 		local row = iter() 
 		while row do
-			local o = fn(row)
+			local data = integrate_data_from_row(engine, entity, row)
+			local o = fn(data)
 			table.insert(results, o)
 			row = iter()
 		end

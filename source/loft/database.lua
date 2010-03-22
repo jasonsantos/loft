@@ -58,7 +58,6 @@ function init(engine, connection_params)
 		if not connection then
 			error('Connection to the database could not be established')
 		end
-		
 		local cursor = assert(connection:execute(string.format(sql, ...)))
 		
 		if cursor and type(cursor)~='number' then

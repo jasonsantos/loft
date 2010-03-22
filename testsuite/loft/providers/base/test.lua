@@ -104,9 +104,9 @@ local engine = {
 			local result = {
 				{id=1, summary="test summary content", fulltext="test fulltext content"}
 			}
-		print'----------------------------'
-		print("'"..sql.."'")
-		print'----------------------------'
+--		print'----------------------------'
+--		print("'"..sql.."'")
+--		print'----------------------------'
 			table.insert(queries, sql)
 			return function()
 				return table.remove(result, #result)
@@ -118,6 +118,8 @@ local engine = {
 		end
 	}
 } 
+
+-- Testing the quey generation routines
 
 provider.create(engine, default.entities.info)
 
@@ -510,3 +512,30 @@ provider.search(engine, {
 		section_editor_actor_name = 'Fulano de Tal',
 	}
 }) 
+
+-- Testing the field integration routines
+do
+	local f, entity = provider.find_field(engine, default.entities.info, 'title')
+	
+	assert(entity==default.entities.info)
+	assert(entity.name=='info')
+	assert(f.column_name=='f_title')
+	assert(f.internal_name=='title')
+end
+
+do
+	local f, entity = provider.find_field(engine, default.entities.info, 'section_name')
+	
+	assert(entity.name=='section')
+	assert(f.column_name=='f_name')
+	assert(f.internal_name=='name')
+end
+
+do
+	local f, entity = provider.find_field(engine, default.entities.info, 'section_editor_actor_name')
+	
+	assert(entity.name=='actor')
+	assert(f.column_name=='f_name')
+	assert(f.internal_name=='name')
+end
+
