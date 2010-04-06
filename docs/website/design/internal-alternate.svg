@@ -1,0 +1,498 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="210mm"
+   height="297mm"
+   id="svg3940"
+   sodipodi:version="0.32"
+   inkscape:version="0.46"
+   sodipodi:docname="internal-alternate.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape">
+  <defs
+     id="defs3942">
+    <linearGradient
+       id="linearGradient3862">
+      <stop
+         id="stop3864"
+         offset="0"
+         style="stop-color:#af4c15;stop-opacity:0.7764706" />
+      <stop
+         id="stop3866"
+         offset="1"
+         style="stop-color:#e2c7b8;stop-opacity:1;" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient3510">
+      <stop
+         style="stop-color:#a33800;stop-opacity:1;"
+         offset="0"
+         id="stop3512" />
+      <stop
+         id="stop3914"
+         offset="0.5"
+         style="stop-color:#ea5200;stop-opacity:1;" />
+      <stop
+         style="stop-color:#ffefe6;stop-opacity:1;"
+         offset="1"
+         id="stop3514" />
+    </linearGradient>
+    <filter
+       inkscape:collect="always"
+       id="filter3856"
+       x="-0.11481449"
+       width="1.229629"
+       y="-0.21463079"
+       height="1.4292616">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="5.1734287"
+         id="feGaussianBlur3858" />
+    </filter>
+    <linearGradient
+       id="linearGradient3349">
+      <stop
+         id="stop3351"
+         offset="0"
+         style="stop-color:#dd5811;stop-opacity:0.14436619" />
+      <stop
+         style="stop-color:#fd7317;stop-opacity:0.49803922;"
+         offset="0.74366575"
+         id="stop3353" />
+      <stop
+         id="stop3355"
+         offset="1"
+         style="stop-color:#ffffff;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient
+       r="31.183403"
+       fy="654.5332"
+       fx="211.99855"
+       cy="654.5332"
+       cx="211.99855"
+       gradientTransform="matrix(0.8261383,1.2250359,-1.4615462,1.0028462,977.53368,-268.02718)"
+       gradientUnits="userSpaceOnUse"
+       id="radialGradient2481"
+       xlink:href="#linearGradient3349"
+       inkscape:collect="always" />
+    <linearGradient
+       id="linearGradient3543">
+      <stop
+         style="stop-color:#fffdfb;stop-opacity:1;"
+         offset="0"
+         id="stop3545" />
+      <stop
+         id="stop3345"
+         offset="0.12903225"
+         style="stop-color:#fd7317;stop-opacity:0.49803922;" />
+      <stop
+         style="stop-color:#fb6400;stop-opacity:0;"
+         offset="1"
+         id="stop3547" />
+    </linearGradient>
+    <linearGradient
+       y2="667.23108"
+       x2="202.53139"
+       y1="601.00653"
+       x1="229.53557"
+       gradientUnits="userSpaceOnUse"
+       id="linearGradient2479"
+       xlink:href="#linearGradient3543"
+       inkscape:collect="always" />
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 526.18109 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="744.09448 : 526.18109 : 1"
+       inkscape:persp3d-origin="372.04724 : 350.78739 : 1"
+       id="perspective3948" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3510"
+       id="linearGradient4042"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.9493067,0,0,0.8982237,415.56668,-898.13997)"
+       x1="11.7836"
+       y1="315.71902"
+       x2="-152.8557"
+       y2="427.56461" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3862"
+       id="linearGradient4044"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.9493067,0,0,0.8982237,415.56668,-898.13997)"
+       x1="1.1920676"
+       y1="395.58545"
+       x2="-131.64485"
+       y2="376.63986" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3510"
+       id="linearGradient4054"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.9493067,0,0,0.8982237,415.56668,-898.13997)"
+       x1="11.7836"
+       y1="315.71902"
+       x2="-152.8557"
+       y2="427.56461" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3862"
+       id="linearGradient4056"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.9493067,0,0,0.8982237,415.56668,-898.13997)"
+       x1="1.1920676"
+       y1="395.58545"
+       x2="-131.64485"
+       y2="376.63986" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3510"
+       id="linearGradient4066"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.9493067,0,0,0.8982237,415.56668,-898.13997)"
+       x1="11.7836"
+       y1="315.71902"
+       x2="-152.8557"
+       y2="427.56461" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3862"
+       id="linearGradient4068"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.9493067,0,0,0.8982237,415.56668,-898.13997)"
+       x1="1.1920676"
+       y1="395.58545"
+       x2="-131.64485"
+       y2="376.63986" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.69250349"
+     inkscape:cx="388.82281"
+     inkscape:cy="917.86153"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1002"
+     inkscape:window-height="738"
+     inkscape:window-x="362"
+     inkscape:window-y="63" />
+  <metadata
+     id="metadata3945">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Camada 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       y="82.75386"
+       x="4.8431802"
+       height="101.61282"
+       width="744.59937"
+       id="rect2521"
+       style="fill:#000080;fill-opacity:1;stroke:#ffffff;stroke-width:0.98982477;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       id="text2517"
+       y="29.750437"
+       x="723.26013"
+       style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:end;line-height:125%;writing-mode:lr-tb;text-anchor:end;fill:#cccccc;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial;-inkscape-font-specification:Arial"
+       xml:space="preserve"
+       sodipodi:linespacing="125%"><tspan
+         y="29.750437"
+         x="723.26013"
+         id="tspan2519"
+         sodipodi:role="line"><tspan
+   style="fill:#4d4d4d"
+   id="tspan3983">downloads</tspan> documentation extensions code develop</tspan></text>
+    <g
+       id="g2639"
+       transform="matrix(1.3327809,0,0,1.3410853,-75.594424,-5.7391977)">
+      <text
+         xml:space="preserve"
+         style="font-size:23.51196289px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial;-inkscape-font-specification:Arial"
+         x="133.50314"
+         y="111.08195"
+         id="text2461"><tspan
+           sodipodi:role="line"
+           id="tspan2463"
+           x="133.50314"
+           y="111.08195">L O F T</tspan></text>
+      <g
+         transform="matrix(0.7412773,0,0,0.7412773,-323.85141,-126.13284)"
+         id="g2467">
+        <rect
+           transform="matrix(0.8597067,0.5107881,-0.5107881,0.8597067,0,0)"
+           ry="10.617877"
+           y="-50.303513"
+           x="640.89844"
+           height="36.163265"
+           width="35.185883"
+           id="rect2469"
+           style="fill:#dd5811;fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1" />
+        <path
+           sodipodi:type="arc"
+           style="fill:url(#linearGradient2479);fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1"
+           id="path2471"
+           sodipodi:cx="213.78313"
+           sodipodi:cy="636.04767"
+           sodipodi:rx="31.183403"
+           sodipodi:ry="31.183403"
+           d="M 244.96653,636.04767 A 31.183403,31.183403 0 1 1 182.59972,636.04767 A 31.183403,31.183403 0 1 1 244.96653,636.04767 z"
+           transform="matrix(0.4171387,0,0,0.4135439,494.55699,44.917391)" />
+        <g
+           id="g2473"
+           transform="translate(246.01682,0)">
+          <rect
+             inkscape:export-ydpi="27.450132"
+             inkscape:export-xdpi="27.450132"
+             inkscape:export-filename="/home/jasonsantos/Desktop/loft-ribbon.png"
+             transform="matrix(0.8597067,0.5107881,-0.5107881,0.8597067,0,0)"
+             ry="10.617877"
+             y="75.373909"
+             x="429.37097"
+             height="36.163265"
+             width="35.185883"
+             id="rect2475"
+             style="fill:#dd5811;fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1" />
+          <path
+             inkscape:export-ydpi="27.450132"
+             inkscape:export-xdpi="27.450132"
+             inkscape:export-filename="/home/jasonsantos/Desktop/loft-ribbon.png"
+             sodipodi:type="arc"
+             style="fill:url(#radialGradient2481);fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1"
+             id="path2477"
+             sodipodi:cx="213.78313"
+             sodipodi:cy="636.04767"
+             sodipodi:rx="31.183403"
+             sodipodi:ry="31.183403"
+             d="M 244.96653,636.04767 A 31.183403,31.183403 0 1 1 182.59972,636.04767 A 31.183403,31.183403 0 1 1 244.96653,636.04767 z"
+             transform="matrix(0.4171387,0,0,0.4135439,248.51089,44.917391)" />
+        </g>
+      </g>
+    </g>
+    <text
+       id="text3705"
+       y="125.05254"
+       x="720.81195"
+       style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;text-anchor:start;fill:#cccccc;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Times New Roman;-inkscape-font-specification:Times New Roman"
+       xml:space="preserve"><tspan
+         y="125.05254"
+         x="727.81195"
+         sodipodi:role="line"
+         style="text-align:end;text-anchor:end"
+         id="tspan3987">Download and install a package </tspan><tspan
+         y="160.05254"
+         x="720.81195"
+         sodipodi:role="line"
+         style="text-align:end;text-anchor:end"
+         id="tspan3991">with providers and extensions you need</tspan></text>
+    <text
+       id="text2523"
+       y="272.39655"
+       x="350.74487"
+       style="font-size:18px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial;-inkscape-font-specification:Arial"
+       xml:space="preserve"><tspan
+         y="272.39655"
+         x="350.74487"
+         id="tspan2525"
+         sodipodi:role="line"
+         style="fill:#cccccc">What is Loft?</tspan></text>
+    <flowRoot
+       style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:end;text-anchor:end;fill:#666666;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial;-inkscape-font-specification:Arial"
+       id="flowRoot2527"
+       xml:space="preserve"
+       transform="translate(19.175518,68.475034)"><flowRegion
+         id="flowRegion2529"><rect
+           y="204.05888"
+           x="331.68951"
+           height="166.86618"
+           width="347.35269"
+           id="rect2531"
+           style="fill:#666666" /></flowRegion><flowPara
+         id="flowPara2533" /><flowPara
+         id="flowPara2573"
+         style="text-align:start;text-anchor:start;fill:#666666">Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Vestibulum viverra varius enim. VDonec sit amet enim. Phasellus nisi metus, tempus sit amet, ultrices ac, porta nec, feli.</flowPara><flowPara
+         style="text-align:start;text-anchor:start;fill:#666666"
+         id="flowPara2637" /><flowPara
+         id="flowPara2575"
+         style="text-align:start;text-anchor:start;fill:#666666">Sed fringilla. Pellentesque convallis dolor vel libero. Fusce  tempus malesuada pede.  quis mi. Curabitur risus urna, placerat et, luctus pulvinar, auctor vel, orci. Vestibulum viverra varius enim. </flowPara><flowPara
+         id="flowPara2589"
+         style="text-align:start;text-anchor:start;fill:#666666" /></flowRoot>    <rect
+       transform="matrix(-0.9167912,0.2718338,-0.8295649,-0.3800886,-91.200022,59.47468)"
+       ry="15.803334"
+       y="-549.25244"
+       x="198.51401"
+       height="53.824333"
+       width="68.305389"
+       id="rect3764"
+       style="opacity:0.16442955;fill:#000000;fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter3856)" />
+    <g
+       id="g4038"
+       transform="translate(-49.097226,4.3321083)">
+      <rect
+         transform="matrix(-0.9657482,0.2594811,-0.9235615,-0.3834504,0,0)"
+         ry="14.194929"
+         y="-582.03625"
+         x="303.71777"
+         height="48.346291"
+         width="64.842758"
+         id="rect3721"
+         style="fill:url(#linearGradient4042);fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1" />
+      <rect
+         style="opacity:0.54026848;fill:url(#linearGradient4044);fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1"
+         id="rect3916"
+         width="64.842758"
+         height="48.346291"
+         x="303.71777"
+         y="-582.03625"
+         ry="14.194929"
+         transform="matrix(-0.9657482,0.2594811,-0.9235615,-0.3834504,0,0)" />
+    </g>
+    <rect
+       style="opacity:0.16442955;fill:#000000;fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter3856)"
+       id="rect4046"
+       width="68.305389"
+       height="53.824333"
+       x="198.51401"
+       y="-549.25244"
+       ry="15.803334"
+       transform="matrix(-0.9167912,0.2718338,-0.8295649,-0.3800886,-39.214724,92.687509)" />
+    <g
+       transform="translate(2.888072,37.544938)"
+       id="g4048">
+      <rect
+         style="fill:url(#linearGradient4054);fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1"
+         id="rect4050"
+         width="64.842758"
+         height="48.346291"
+         x="303.71777"
+         y="-582.03625"
+         ry="14.194929"
+         transform="matrix(-0.9657482,0.2594811,-0.9235615,-0.3834504,0,0)" />
+      <rect
+         transform="matrix(-0.9657482,0.2594811,-0.9235615,-0.3834504,0,0)"
+         ry="14.194929"
+         y="-582.03625"
+         x="303.71777"
+         height="48.346291"
+         width="64.842758"
+         id="rect4052"
+         style="opacity:0.54026848;fill:url(#linearGradient4056);fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1" />
+    </g>
+    <rect
+       transform="matrix(-0.9167912,0.2718338,-0.8295649,-0.3800886,22.878826,124.4563)"
+       ry="15.803334"
+       y="-549.25244"
+       x="198.51401"
+       height="53.824333"
+       width="68.305389"
+       id="rect4058"
+       style="opacity:0.16442955;fill:#000000;fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter3856)" />
+    <g
+       id="g4060"
+       transform="translate(64.981622,69.31373)">
+      <rect
+         transform="matrix(-0.9657482,0.2594811,-0.9235615,-0.3834504,0,0)"
+         ry="14.194929"
+         y="-582.03625"
+         x="303.71777"
+         height="48.346291"
+         width="64.842758"
+         id="rect4062"
+         style="fill:url(#linearGradient4066);fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1" />
+      <rect
+         style="opacity:0.54026848;fill:url(#linearGradient4068);fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:21.70000076;stroke-dasharray:none;stroke-opacity:1"
+         id="rect4064"
+         width="64.842758"
+         height="48.346291"
+         x="303.71777"
+         y="-582.03625"
+         ry="14.194929"
+         transform="matrix(-0.9657482,0.2594811,-0.9235615,-0.3834504,0,0)" />
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-size:18px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial;-inkscape-font-specification:Arial"
+       x="350.74487"
+       y="489.00195"
+       id="text4070"><tspan
+         style="fill:#cccccc"
+         sodipodi:role="line"
+         id="tspan4072"
+         x="350.74487"
+         y="489.00195">What is Loft?</tspan></text>
+    <flowRoot
+       transform="translate(19.175518,285.08044)"
+       xml:space="preserve"
+       id="flowRoot4074"
+       style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:end;text-anchor:end;fill:#666666;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial;-inkscape-font-specification:Arial"><flowRegion
+         id="flowRegion4076"><rect
+           style="fill:#666666"
+           id="rect4078"
+           width="347.35269"
+           height="166.86618"
+           x="331.68951"
+           y="204.05888" /></flowRegion><flowPara
+         id="flowPara4080" /><flowPara
+         style="text-align:start;text-anchor:start;fill:#666666"
+         id="flowPara4082">Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Vestibulum viverra varius enim. VDonec sit amet enim. Phasellus nisi metus, tempus sit amet, ultrices ac, porta nec, feli.</flowPara><flowPara
+         id="flowPara4084"
+         style="text-align:start;text-anchor:start;fill:#666666" /><flowPara
+         style="text-align:start;text-anchor:start;fill:#666666"
+         id="flowPara4086">Sed fringilla. Pellentesque convallis dolor vel libero. Fusce  tempus malesuada pede.  quis mi. Curabitur risus urna, placerat et, luctus pulvinar, auctor vel, orci. Vestibulum viverra varius enim. </flowPara><flowPara
+         style="text-align:start;text-anchor:start;fill:#666666"
+         id="flowPara4088" /></flowRoot>    <text
+       id="text4090"
+       y="678.17065"
+       x="350.74487"
+       style="font-size:18px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial;-inkscape-font-specification:Arial"
+       xml:space="preserve"><tspan
+         y="678.17065"
+         x="350.74487"
+         id="tspan4092"
+         sodipodi:role="line"
+         style="fill:#cccccc">What is Loft?</tspan></text>
+    <flowRoot
+       style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:end;text-anchor:end;fill:#666666;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial;-inkscape-font-specification:Arial"
+       id="flowRoot4094"
+       xml:space="preserve"
+       transform="translate(19.175518,474.24916)"><flowRegion
+         id="flowRegion4096"><rect
+           y="204.05888"
+           x="331.68951"
+           height="166.86618"
+           width="347.35269"
+           id="rect4098"
+           style="fill:#666666" /></flowRegion><flowPara
+         id="flowPara4100" /><flowPara
+         id="flowPara4102"
+         style="text-align:start;text-anchor:start;fill:#666666">Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Vestibulum viverra varius enim. VDonec sit amet enim. Phasellus nisi metus, tempus sit amet, ultrices ac, porta nec, feli.</flowPara><flowPara
+         style="text-align:start;text-anchor:start;fill:#666666"
+         id="flowPara4104" /><flowPara
+         id="flowPara4106"
+         style="text-align:start;text-anchor:start;fill:#666666">Sed fringilla. Pellentesque convallis dolor vel libero. Fusce  tempus malesuada pede.  quis mi. Curabitur risus urna, placerat et, luctus pulvinar, auctor vel, orci. Vestibulum viverra varius enim. </flowPara><flowPara
+         id="flowPara4108"
+         style="text-align:start;text-anchor:start;fill:#666666" /></flowRoot>  </g>
+</svg>

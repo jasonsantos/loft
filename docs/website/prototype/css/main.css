@@ -1,0 +1,111 @@
+body {
+    margin:0;
+    padding:0;
+    background-color: #fff;
+    font-family: Helvetica, Arial, Sanserif;
+    font-size: small;
+}
+
+#header {
+    margin-left: 40%;
+
+}
+
+#header h1#logo {
+    background: url(../images/loft-main-logo.png) no-repeat;
+    display: block;
+    width: 240px;
+    height: 86px;
+    margin: 0;
+    padding: 0;
+    margin-left: -360px;
+    margin-top: 100px;
+    text-indent: -9999px;
+}
+
+.leading {
+    font-family: Times, Serif;
+    font-weight: normal;
+    font-size: 36px;
+}
+
+#header h2 {
+    display: block;
+    color: #ccc;
+    margin: 0;
+    padding: 0;
+    margin-top: -65px;
+}
+
+ul.menu {
+    float: right;
+    margin-top: -150px;
+}
+
+ul.menu LI {
+    float: left;
+    list-style: none;
+    margin-right: 1em;
+}
+
+ul.menu LI A {
+    color: #ccc;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: small;
+}
+
+#content {
+    margin-left: 40%;
+    margin-top: 80px;
+    width: 40%;
+}
+
+#content div {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+#content .bar {
+    margin-left: -100%;
+    width: 250%;
+    background-color: #000080;
+}
+
+#content .bar h1 {
+    margin-left: 40%;
+    color: #fff;
+    font-family: Times, Serif;
+    font-weight: normal;
+    font-size: 36px;
+}
+
+#content h2 {
+    color: #ccc;
+    text-decoration: none;
+    font-weight: normal;
+    font-size: 24px;
+}
+
+#content p {
+    color: #666;
+    text-decoration: none;
+    font-size: 110%;
+    margin-top: 2em;
+
+}
+
+#content p a {
+    color: #ccc;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+#content img {
+    float: left;
+    margin-top: 20%;
+    margin-left: -60%;
+}
+

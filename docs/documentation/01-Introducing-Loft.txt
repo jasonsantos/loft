@@ -1,0 +1,24 @@
+Chapter 01 - Introducing Loft
+=============================
+
+A description of Loft and its components. Motivations and characteristics of
+the modules.
+
+What is Loft?
+-------------
+
+Loft is a object persistence framework and an object manipulation toolkit.
+
+The primary purpose of Loft is to establish a standard interface for both
+accessing objects from their persistent repository and for writing repository
+providers.A repository can be a relational database, the network, a set of
+files on the filesystem, a directory server or any other form of data
+persistence.
+
+Support for different types of repositories are implemented on persistence
+providers. Most of them can provide all you need to access objects in your
+application, but Loft allows for you to write your own provider, adding your own
+tweaks and optimizing for extenden functionality or better performance.
+
+##Loft provides tools for building real-world applications in Lua
+
