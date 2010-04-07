@@ -21,17 +21,19 @@ end
 function table.merge(first, second)
 	local other = {}
 	table.add(other, first)
-	table.add(other, second) 
+	table.add(other, second)
 	return other
 end
 
 function table.count(t)
 	local n = 0
 	for _ in pairs(t) do
-		n = n + 1 
+		n = n + 1
 	end
 	return n
 end
+
+WHITESPACE = (lpeg.S" \t\n\r")^0
 
 function string.split(s, sep)
 	sep = lpeg.P(sep)
@@ -65,5 +67,11 @@ function split_field_name(name)
 	names = type(names)=='string' and {names} or names or {}
 	local attribute = table.remove(names,#names)
 	return names, attribute
+end
+
+function op_field(v)
+	local d = string.sub(string.gsub(v,'[^+%-]*', ''), 1, 1)
+	local f = string.gsub(v,'[+%-]*', '')
+    return d, f
 end
 
