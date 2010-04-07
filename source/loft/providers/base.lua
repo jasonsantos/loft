@@ -8,7 +8,7 @@ local cosmo = require 'cosmo'
 ----------------------------------------------
 -- Persistence Provider for the Loft Module
 ----------------------------------------------
--- 
+--
 
 module(..., package.seeall)
 
@@ -19,11 +19,11 @@ description = [[Generic Module for Database Behaviour]]
 -- ######################################### --
 -- # API
 -- ######################################### --
---  All persistence providers must implement 
+--  All persistence providers must implement
 --  this API to respond to the Loft engine
---  the 'base' provider will provide all of these 
+--  the 'base' provider will provide all of these
 --  interfaces, and you can extended them
---  in your own providers 
+--  in your own providers
 -----------------------------------------------
 
 -- -------------- --
@@ -45,9 +45,9 @@ description = [[Generic Module for Database Behaviour]]
 -- -------------- --
 -- Providers that use SQL and extend Base can make use of
 -- these properties to extend behavior without rewritting
--- the API functions  
+-- the API functions
 
--- database_engine 
+-- database_engine
 
 -- quotes
 -- filters.like
@@ -56,7 +56,7 @@ description = [[Generic Module for Database Behaviour]]
 -- escapes.new_lines
 -- escapes.reserved_field_name
 
--- database_type 
+-- database_type
 -- reserved_words
 -- field_types
 -- sql
@@ -71,20 +71,20 @@ description = [[Generic Module for Database Behaviour]]
 database_type = 'base'
 
 reserved_words = util.indexed_table{}
- 
+
 reserved_words {
 	'and',
-	'fulltext', 
+	'fulltext',
 	'table'
 }
- 
+
 filters = {
-	
-	like = function(s) 
+
+	like = function(s)
 		return string.gsub(s or '', '[*]', '%%')
 	end,
-	
-	contains =function(f,s) 
+
+	contains =function(f,s)
 		return string.format("CONTAINS(%s, %s)", f, s)
 	end,
 
@@ -93,18 +93,18 @@ filters = {
 quotes = [[']]
 
 escapes = {
-	quotes = function(s) 
+	quotes = function(s)
 		return string.gsub(s or '', "'", "''")
 	end,
-	
-	new_lines = function(s) 
+
+	new_lines = function(s)
 		return string.gsub(s or '', "\n", "\\n")
 	end,
-	
+
 	reserved_field_name =function(s)
-		return string.format('`%s`', s) 
+		return string.format('`%s`', s)
 	end
-	
+
 }
 
 local function contains_special_chars(s)
@@ -115,7 +115,7 @@ escape_field_name=function(s)
 	return (reserved_words[string.lower(s)] or contains_special_chars(s)) and escapes.reserved_field_name(s) or s
 end
 
-string_literal=function(s) 
+string_literal=function(s)
 	return quotes .. escapes.quotes(escapes.new_lines(s)) .. quotes
 end
 
@@ -128,7 +128,7 @@ field_types = {
 	long_text={type='LONGTEXT', onEscape=string_literal},
 	timestamp={type='DATETIME'}, --TODO: create a datetime helper
 	boolean={type='BOOLEAN'},
-	
+
 	has_one={type='BIGINT', size='8', onEscape=tonumber},
 	belongs_to={type='BIGINT', size='8', onEscape=tonumber},
 }
@@ -136,30 +136,30 @@ field_types = {
 --  ]=]
 
 sql = {
-	
+
 	CREATE = [==[
-CREATE TABLE IF NOT EXISTS $table_name ( 
-  $columns{", "}[=[$escape_field_name{$column_name} $type$if{$size}[[($size)]]$if{$primary}[[ PRIMARY KEY]]$if{$required}[[ NOT NULL]]$if{$description}[[ COMMENT  $string_literal{$description}]]$if{$autoincrement}[[ AUTO_INCREMENT]]$sep
+CREATE TABLE IF NOT EXISTS $table_name (
+  $columns{","}[=[$escape_field_name{$column_name} $type$if{$size}[[($size)]]$if{$primary}[[ PRIMARY KEY]]$if{$required}[[ NOT NULL]]$if{$description}[[ COMMENT  $string_literal{$description}]]$if{$autoincrement}[[ AUTO_INCREMENT]]$sep
 ]=]);]==],
-	
+
 	INSERT = [[INSERT INTO $table_name ($data{", "}[=[$escape_field_name{$column_name}$sep]=]) VALUES ($data{", "}[=[$value$sep ]=])]],
-	
+
 	UPDATE = [==[UPDATE $table_name SET $data{", "}[=[$escape_field_name{$column_name}=$value$sep]=] $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==],
-	
-	SELECT = [===[SELECT 
-  $columns{", "}[[ $if{$column_name}[[$escape_field_name{$column_name}]][[$func]] as $escape_field_name{$alias}$sep
+
+	SELECT = [===[SELECT
+  $columns{","}[[ $if{$column_name}[[$escape_field_name{$column_name}]][[$func]] as $escape_field_name{$alias}$sep
   ]]FROM $table_name
-  $if{$__joins}[==[$from_alias $__joins[=[$type JOIN $join_table $alias ON ( $on_clause ) ]=] 
+  $if{$__joins}[==[$from_alias $__joins[=[$type JOIN $join_table $alias ON ( $on_clause ) ]=]
   ]==]$if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=] $if{$has_sorting}[=[ORDER BY $sorting_concat{", "}[[$it$sep]]]=] $if{$pagination}[=[$if{$pagination|limit}[[ LIMIT $pagination|limit ]] $if{$pagination|offset}[[OFFSET $pagination|offset]]]=]]===],
-	
+
 	DELETE = [==[DELETE FROM $table_name $if{$filters}[=[WHERE ($filters_concat{" AND "}[[$it$sep]])]=]]==],
-	
+
 	LASTID = [==[SELECT LAST_INSERT_ID()]==],
-	
+
 	GET_TABLES = [==[SHOW TABLES]==],
-	
+
 	GET_TABLE_DESCRIPTION = [==[DESCRIBE $table_name]==],
-	
+
 	IN = ' IN ',
 	NOTIN = ' NOT IN ',
 	IS = ' IS ',
@@ -170,12 +170,12 @@ CREATE TABLE IF NOT EXISTS $table_name (
 	GE = ' >= ',
 	ISNULL = ' IS NULL',
 	ISNOTNULL = ' IS NOT NULL',
-	
+
 	set = function(items)
-		local content = type(items)=='table' and table.concat(items, ', ') or tostring(items) 
+		local content = type(items)=='table' and table.concat(items, ', ') or tostring(items)
 		return '('..content..')'
 	end,
-	
+
 	field_name = function(query, field)
 		if type(field)=='string' then
 			return field
@@ -187,9 +187,8 @@ CREATE TABLE IF NOT EXISTS $table_name (
 
 	filters = function(query, filters)
 		--TODO: add support for OR clauses and more complex conditions
-		local _, conditions = query:conditions(filters or {})
-		
-		local result = query:render_conditions(conditions)
+
+		local _,result = query:conditions(filters or {})
 
 		if next(result) then
 			query.filters = {}
@@ -200,10 +199,10 @@ CREATE TABLE IF NOT EXISTS $table_name (
 	condition = function(query, lside, op, rside)
 		return tostring(lside)..tostring(op)..tostring(rside)
 	end,
-	
+
 	join_conditions = function(list)
 		return table.concat(list, ' AND ')
-	end	
+	end
 }
 
 -- ######################################### --
@@ -216,36 +215,36 @@ local passover_function = function(...) return ... end
 
 render_engine = {
 	templates = sql,
-	
+
 	prepare = function(query, filters)
 		query:renderer(render_engine)
-		
+
 		if ( not query.table_name and not query.name ) then
 			error("Entity must have a  `name` or `table_name`.")
 		end
-		
+
 		query.columns = cosmo.make_concat( query.__fields )
-		
-		query['string_literal'] = function (arg) 
+
+		query['string_literal'] = function (arg)
 			return string_literal(arg[1])
 		end
-		
-		query['escape_field_name'] = function (arg) 
+
+		query['escape_field_name'] = function (arg)
 			return escape_field_name(arg[1])
 		end
-		
+
 		query["if"] = function (arg)
 		   if arg[1] then arg._template = 1 else arg._template = 2 end
 		   cosmo.yield(arg)
 		end
-		
+
 		if filters then
 			render_engine.templates.filters(query, filters)
 		end
-		
+
 		return query
 	end,
-	
+
 	render = function(query, options)
 		local options = options or {}
 		local query_type = options.type or options[1] or 'SELECT'
@@ -258,7 +257,7 @@ render_engine = {
 				end
 			end
 		end
-		
+
 		return cosmo.fill(sql[query_type], query)
 	end
 }
@@ -271,22 +270,45 @@ function find_field(engine, entity, field_name, fn)
 	local fn = fn or get_field_entity;
 	local provider = engine.provider or {};
 	local entity = entity
+	local field_path = {}
+--print('field:', field_name)
 	local relations, attr = util.split_field_name(field_name)
 	for _,relation_name in ipairs(relations) do
+--print('>', relation_name)
 		local f = entity.fields[relation_name]
-		if f then
+
+		if f and f.type then
+			f.name = relation_name
 			assert(f.entity, string.format("While looking for '%s': field '%s' must be a relationship", field_name,relation_name))
 			entity = fn(f, engine.schema.entities)
 			assert(entity, string.format("While looking for '%s': could not find entity '%s'", field_name,f.entity))
-			
+
+			table.insert(field_path, f)
 		else
-			error(string.format("While looking for '%s': relation '%s' must be present on entity '%s'", field_name, relation_name, entity and entity.name))
+			print(string.format("While looking for '%s': relation '%s' must be present on entity '%s'", field_name, relation_name, entity and entity.name))
+			return nil
 		end
-	end 
+	end
 	local field = table.merge({internal_name=attr, field_name=field_name}, entity.fields[attr])
 	local field_type = table.copy(provider.field_types[field.type]) or {}
-	
-	return table.merge(field_type, field), entity, relations
+
+	return table.merge(field_type, field), entity, field_path
+end
+
+function integrate_foreign_field(prototype, row, field, field_path)
+	local f = table.remove(field_path, 1)
+	if f and (f.type=='belongs_to' or f.type=='has_one') then
+		local prot = prototype[f.name] or {}
+		integrate_foreign_field(prot, row, field, field_path)
+
+		prototype[f.name] = prot
+	--elseif f.type=='has_many' then
+		-- TODO: add a proxy list to the entity filtered by the parent's id. That probably shouldn't be done here. Maybe a closure.
+		--local prot = {}
+	elseif field then
+		local value = row[field.field_name]
+		prototype[field.internal_name] = value
+	end
 end
 
 function integrate_data_from_row(engine, entity, row)
@@ -295,15 +317,21 @@ function integrate_data_from_row(engine, entity, row)
 	for key, value in pairs(row) do
 	--TODO: treat all kinds of result
 	-- 1. all fields from main entity [OK]
-	-- 2. some from main entity, some are alien values or function results 
+	-- 2. some from main entity, some are alien values or function results
 	-- 3. some from main entity, some from a related entity, full load (has_one or belongs_to)
-	-- 4. some from main entity, some form a related entity, early binding (has_one or belongs_to) 
+	-- 4. some from main entity, some form a related entity, early binding (has_one or belongs_to)
 	-- 5. some from main entity, some form a related entity, some from a third related entity
 	-- 6. some from main entity, some form a related entity, full load (has_many, has_and_belongs)
-		local field, e = find_field(engine, entity, key, get_field_entity)
-		
-		local fn = field.onRetrieving or passover_function
-		data[key] = fn(value)
+		local field, e, fs = find_field(engine, entity, key, get_field_entity)
+
+		if field then
+			local fn = field.onRetrieving or passover_function
+			if #fs>0 then
+				integrate_foreign_field(data, row, field, fs)
+			else
+				data[key] = fn(value)
+			end
+		end
 	end
 	return data
 end
@@ -313,12 +341,12 @@ end
 -- ######################################### --
 
 --- sets up specific configurations for this provider.
--- this function is executed when the engine is 
--- created. It can be used primarily to create 
--- the 'connection_string' or the 'connection_table' options from 
--- a more human-readable set of options    
+-- this function is executed when the engine is
+-- created. It can be used primarily to create
+-- the 'connection_string' or the 'connection_table' options from
+-- a more human-readable set of options
 -- @param engine the active Loft engine
--- @return alternative loft engine to be used or nil if the original engine is to be used 
+-- @return alternative loft engine to be used or nil if the original engine is to be used
 function setup(engine)
 	engine.options.connection_table = {
 		engine.options.database,
@@ -329,7 +357,7 @@ function setup(engine)
 	}
 
 	engine.db = database_engine.init(engine, engine.options.connection_table)
-	
+
 	engine.provider = _M
 
 	return engine
@@ -344,89 +372,89 @@ function persist(engine, entity, id, obj)
 	obj.id = id or obj.id
 	local data = {}
 	local t_required = {}
-	
+
 	events.notify('before', 'persist', {engine=engine, entity=entity, id=id, obj=obj})
-	
+
 	-- Checking if every required field is present
 	for i, column in ipairs(query.__columns) do
-		
-		if ( column.required ) then 
+
+		if ( column.required ) then
 			if ( not obj[ column.alias ] and column.alias ~= 'id') then
 				table.insert( t_required, column.alias )
 			end
 		end
-		
+
 		if ( obj[ column.alias ] ) then
 			local fn = column.onEscape or passoverFunction
-			table.insert(data, {				
+			table.insert(data, {
 				column_name = column.name,
 				value = fn( obj[ column.alias ] )
 			})
 		end
-		
+
 	end
-	
-	if ( #t_required > 0 ) then		
+
+	if ( #t_required > 0 ) then
 		error("The following required fields are absent (" .. table.concat(t_required, ',') .. ")")
 	end
-	
+
 	local query_type = (obj.id) and 'UPDATE' or 'INSERT'
-	
+
 	local sql_str = query:render{ query_type, data=data, filters={ id=id } }
-	
+
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
 	local ok, data = pcall(engine.db.exec, sql_str)
-	
+
 	if query_type=='UPDATE' then
 		return ok, data
 	end
-	
+
 	if ok then
 		if data and type(data) == "table" then
-			--TODO: refresh object with other eventual database-generated values 
-			obj.id = data.id or obj.id 
+			--TODO: refresh object with other eventual database-generated values
+			obj.id = data.id or obj.id
 		elseif not isUpdate and not obj.id then
 			obj.id = engine.db.last_id()
 		end
-		
+
 		events.notify('after', 'persist', {engine=engine, entity=entity, id=id, obj=obj, data=data })
-		
+
 		return true, obj.id
 	else
 		events.notify('error', 'persist', {engine=engine, entity=entity, id=id, obj=obj, message=data})
-		
+
 		return nil, data
-	end 
+	end
 end
 
 function create(engine, entity, do_not_execute)
 	local query = query.create(engine, entity)
-	
+
 	local sql_str = query:render{ 'CREATE' }
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
-	
+
 	return do_not_execute and sql_str or pcall(engine.db.exec, sql_str)
 end
 
---- Eliminates a record  from the persistence that corresponds to the given id 
+--- Eliminates a record  from the persistence that corresponds to the given id
 -- @param engine the active Loft engine
 -- @param entity the schema entity identifying the type of the object to remove
 -- @param id identifier of the object to remove
 -- @param obj the object itself
-function delete(engine, entity, id, obj)	
+function delete(engine, entity, id, obj)
 	local query = query.create(engine, entity)
-	
+
 	local sql_str = query:render{'DELETE', filters={ id=id } }
-	
+
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
 	return pcall(engine.db.exec, sql_str)
 end
 
 -- retrieve(engine, entity, id)
---- Obtains a table from the persistence that 
+--- Obtains a table from the persistence that
 -- has the proper structure of an object of a given type
 -- @param engine the active Loft engine
 -- @param entity the schema entity identifying the type of the object to retrieve
@@ -436,16 +464,16 @@ function retrieve(engine, entity, id)
 	local query = query.create(engine, entity)
 
 	local sql_str = query:render{'SELECT', filters={ id=id } }
-	
+
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
 	local ok, iter = pcall(engine.db.exec, sql_str)
-	
+
 	if ok then
 		return iter()
 	else
 		return nil, iter
-	end 
+	end
 end
 
 -- search(engine, options)
@@ -456,49 +484,49 @@ end
 -- 			filters table containing a set of filter conditions
 -- 			pagination table containing a pagination parameters
 -- 			sorting table containing a sorting parameters
--- 			visitor	(optional) function to be executed 
+-- 			visitor	(optional) function to be executed
 -- 					every time an item is found in persistence
 --					if ommited, function will return a list with everything it found
--- @return 			array with every return value of the resultset, after treatment by the visitor 
+-- @return 			array with every return value of the resultset, after treatment by the visitor
 function search(engine, options)
 	local entity, filters, pagination, sorting, visitorFunction =
  		(options.entity or options[1]), options.filters, options.pagination, options.sorting, options.visitor
-	
+
 	local query = query.create(engine, entity, options.include_fields, options.exclude_fields)
-	
+
 	if ( type(pagination) == "table" and table.count(pagination) > 0) then
 		local limit = pagination.limit or pagination.top or options.page_size or engine.options.page_size
 		local offset = pagination.offset or (pagination.page and limit * (pagination.page - 1))
-		
+
 		query.pagination = {limit=limit, offset=offset}
 	end
 	local sortingcolumns
 	if ( type(sorting) == "table" and #sorting > 0 ) then
 		sortingcolumns = {}
 		for i, v in ipairs(sorting) do
-			local d = string.sub(string.gsub(v,'[^+%-]*', ''), 1, 1)
-			local f = string.gsub(v,'[+%-]*', '')
+			local d, f = util.op_field(v)
 			if d=='-' then
 				table.insert( sortingcolumns, escape_field_name(f)..' DESC')
 			else
 				table.insert( sortingcolumns, escape_field_name(f)..' ASC')
 			end
 		end
-		
+
 		query.has_sorting = {}
 	end
-	
+
 	local sql_str = query:render{'SELECT', filters=filters, sorting_concat=sortingcolumns}
-	
+
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
 	local ok, iter = pcall(engine.db.exec, sql_str)
-	
+
 	if ok then
 		--TODO: implement resultset proxies using the list module
+		--TODO: allow for many to many relationships without ID
 		local results = {}
 		local fn = visitorFunction or passover_function
-		local row = iter() 
+		local row = iter()
 		while row do
 			local data = integrate_data_from_row(engine, entity, row)
 			local o = fn(data)
@@ -508,7 +536,7 @@ function search(engine, options)
 		return results
 	else
 		return nil, iter
-	end 
+	end
 end
 
 function get_tables(engine, options)
@@ -516,11 +544,11 @@ function get_tables(engine, options)
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
 	local ok, iter = pcall(engine.db.exec, query:render{'GET_TABLES'})
-	
+
 	if ok then
 		--TODO: implement resultset proxies using the list module
 		local results = {}
-		local row = iter() 
+		local row = iter()
 		while row do
 			local i, value = next(row)
 			table.insert(results, value)
@@ -555,16 +583,16 @@ end
 function get_description(engine, options)
 	local table_name = options.table_name
 	assert(table_name, "you need to inform a table name")
-	
+
 	local query = query.create()
 	--TODO: proper error handling
 	--TODO: think about query logging strategies
 	local ok, iter = pcall(engine.db.exec, { 'GET_TABLE_DESCRIPTION', table_name = table_name })
-	
+
 	if ok then
 		--TODO: implement resultset proxies using the list module
 		local results = {}
-		local row = iter() 
+		local row = iter()
 		while row do
 			table.insert(results, convert_description_in_table(row))
 			row = iter()
@@ -575,7 +603,7 @@ function get_description(engine, options)
 	end
 end
 -- count(engine, options)
---- Gets the number of results of a given set of search options 
+--- Gets the number of results of a given set of search options
 -- @param engine the active Loft engine
 -- @param options the
 -- 			entity the schema entity identifying the type of the object to retrieve
@@ -585,21 +613,22 @@ end
 function count(engine, options)
  	local entity, filters, pagination, sorting, visitorFunction =
  		options.entity, options.filters, options.pagination, options.sorting, options.visitor
- 		
+
 	local query = query.create(engine, entity)
-	
+
 	local sql_str = query:render{ 'SELECT', filters=filters, columns = { { func = 'COUNT(*)', alias = 'count' }} }
-	
+
 	local ok, iter_num = pcall(engine.db.exec, sql_str)
-	
+
 	if ok then
 		--TODO: implement resultset proxies using the list module
 		local results = {}
-		local row = iter_num() 
+		local row = iter_num()
 		if row then
 			return row.count
 		end
 	end
-	
+
 	return nil
 end
+
